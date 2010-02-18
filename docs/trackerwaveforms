@@ -1,0 +1,8 @@
+Waveforms generate values in [-32,31]
+
+ENC	WF_	DUTY	P BITS
+---	---	----	------
+00	TRI	N	TOP 7	Triangle wave
+01	SAW	N	TOP 6	Rising sawtooth
+02	PUL	Y	ALL	Square, duty is width in 16KHz samples
+03	NOI	N	N	Uniform noise

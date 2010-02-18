@@ -1,0 +1,18 @@
+ENC	CHAR	COMMAND
+---	----	-------
+0	'0'	CHAN OFF (param ignored)
+1	'd'	OSC  DUTY (param = top 8 bits, bottom 8 set to 0)
+2	'f'	CHAN VOLUME DERIVATIVE (param)
+3	'i'	CHAN INTERTIA (param << 1)
+4	'j'	CHAN INSTRUMENT OFFSET (param)
+5	'l'	CHAN BEND DERIVATIVE (param)
+6	'm'	CHAN DUTY DERIVATIVE (param << 6)
+7	't'	CHAT INSTRUMENT WAIT (param)
+8	'v'	OSC  VOLUME (param)
+9	'w'	OSC  WAVEFORM (param)
+A	'+'	CHAN INSTRUMENT NOTE (param + tnote - 48)
+B	'='	CHAN INSTRUMENT NOTE (param)
+C	'~'	CHAN VDEPTH AND VRATE (param == ddddrrrr)
+D	n/a
+E	n/a
+F	n/a
