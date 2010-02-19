@@ -28,13 +28,15 @@ my $FCPU = 20000000;
 my $SAMPLERATE = 16000;
 my $SINEWSIZE = 64;
 
-print "static const s8 sinetable[] = {\n";
+print "#include \"progenv/gentimes.h\"\n";
+
+print "const s8 sinetable[] = {\n";
 print join ", ", map { int } @{gensinetab($SINEWSIZE,127)} ;
 print "};\n\n";
 
 # The frequency table ranges from C1 (note 4) to B7 (note 87)
 # 
-print "static const u16 freqtable[] = {\n";
+print "const u16 freqtable[] = {\n";
 foreach (@{genfreqtab($SAMPLERATE,4,87)}) { printf "%4x, ", int($_); }
 print "};\n\n";
 
@@ -44,6 +46,6 @@ my @t0denoms = ( undef, 1, 8, 64, 256, 1024, undef, undef );
 my $ix = 1;
 while ($ix < 5 and $FCPU/$SAMPLERATE/$t0denoms[$ix] > 255) { $ix++; }
 die if $ix == 5;
-print "static const int T0DIV = ", $ix, ";\n";
-print "static const int T0MAX = ",
+print "const int T0DIV = ", $ix, ";\n";
+print "const int T0MAX = ",
 		int($FCPU/$SAMPLERATE/$t0denoms[$ix]), ";\n\n";
