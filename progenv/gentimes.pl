@@ -70,9 +70,9 @@ if ($mode eq "C") {
 	my $ix = 1;
 	while ($ix < 5 and $FCPU/$SAMPLERATE/$t0denoms[$ix] > 255) { $ix++; }
 	die if not defined $t0denoms[$ix];
-	print "#define T0DIV = ", $ix, ";\n";
-	print "#define T0MAX = ",
-		int($FCPU/$SAMPLERATE/$t0denoms[$ix]), ";\n\n";
+	print "#define T0DIV ", $ix, "\n";
+	print "#define T0MAX ",
+		int($FCPU/$SAMPLERATE/$t0denoms[$ix]), "\n\n";
 
 	print "#define PLAY_WAIT ", $SAMPLERATE/100, ";\n\n";
 
