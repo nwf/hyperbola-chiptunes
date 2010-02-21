@@ -1,14 +1,7 @@
 #define TRACKLEN 32
 
 #include <progenv/types.h>
-
-enum {
-	WF_TRI,
-	WF_SAW,
-	WF_PUL,
-	WF_NOI
-};
-
+#include <progenv/trackerfmt.h>
 
 struct trackline {
 	u8	note;
