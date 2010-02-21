@@ -1,3 +1,5 @@
+#include <progenv/trackerfmt.h>
+
 		.global	readsongbyte
 		.global	watchdogoff
 		.global	__vector_14
@@ -115,7 +117,7 @@ nocallb:	subi	r24, 0x01		;				1
 		ldi	r30, lo8(osc)		; Z = &osc[0]			1
 		ldi	r31, hi8(osc)		;				1
 
-		ldi	r21, 3			; i = 3				1
+		ldi	r21, NR_CHAN-1		; load i		 	1
 
 chloop:
 		; Loop prologue: 4 clocks.
@@ -129,11 +131,11 @@ chloop:
 		; WF_PUL: 16 or 18 clocks.
 		; WF_NOI: 12 clocks.
 
-		cpi	r18, 0x00		; WF_TRI			1
+		cpi	r18, WF_TRI		; 				1
 		breq	wftri			;				1/2
-		cpi	r18, 0x01		; WF_SAW			1
+		cpi	r18, WF_SAW		; 				1
 		breq	wfsaw			;				1/2
-		cpi	r18, 0x02		; WF_PUL			1
+		cpi	r18, WF_PUL		; 				1
 		breq	wfpul			;				1/2
 
 wfnoi:
