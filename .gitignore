@@ -1,0 +1,7 @@
+*.o
+progenv/gentimes.[ch]
+target/flash.hex
+target/mapfile
+tracker/tracker
+tracker/exported.h
+tracker/exported.s
