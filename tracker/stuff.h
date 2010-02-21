@@ -1,10 +1,6 @@
 #define TRACKLEN 32
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef char s8;
-typedef short s16;
-typedef unsigned long u32;
+#include <progenv/types.h>
 
 enum {
 	WF_TRI,
