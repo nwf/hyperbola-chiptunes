@@ -42,7 +42,7 @@ GetOptions(%OPTS) or die;
 if ($mode eq "C") {
 	print "#include \"progenv/gentimes.h\"\n";
 
-	print "const uint8_t sinetable[] = {\n";
+	print "const int8_t sinetable[] = {\n";
 	print join ", ", map { int } @{gensinetab($SINEWSIZE,127)} ;
 	print "};\n\n";
 
@@ -60,7 +60,7 @@ if ($mode eq "C") {
 	print "\t.global freqtable;\n";
 	print "#else\n";
 	print "#include <progenv/types.h>\n\n";
-	print "extern const uint8_t sinetable[];\n";
+	print "extern const int8_t sinetable[];\n";
 	print "extern const uint16_t freqtable[];\n";
 	print "#endif /* ASSEMBLER */\n\n";
 
