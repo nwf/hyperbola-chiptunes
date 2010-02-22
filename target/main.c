@@ -359,8 +359,8 @@ int main() {
 	initresources();
 
 	TCCR0A = 0x02;
-	TCCR0B = 0x02;	// clkIO/8, so 1/8 MHz
-	OCR0A = 62;//125; // 8 KHz
+	TCCR0B = T0DIV & 0x7;
+	OCR0A = T0MAX;
 
 	TIMSK0 = 0x02;
 
