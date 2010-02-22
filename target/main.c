@@ -6,6 +6,7 @@
 
 #include <progenv/types.h>
 #include <progenv/gentimes.h>
+#include <progenv/trackerfmt.h>
 
 volatile u8 callbackwait;
 volatile u8 lastsample;
@@ -24,16 +25,9 @@ u32 noiseseed = 1;
 
 u8 light[2];
 
-#include "../tracker/exported.h"
+#include "tracker/exported.h"
 
 const u8 validcmds[] = "0dfijlmtvw~+=";
-
-enum {
-	WF_TRI,
-	WF_SAW,
-	WF_PUL,
-	WF_NOI
-};
 
 volatile struct oscillator {
 	u16	freq;
