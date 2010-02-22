@@ -150,7 +150,7 @@ wfpul:
 		ldd	r19, Z+5		;				2
 		cp	r18, r24		;				1
 		cpc	r19, r25		;				1
-		brcc	chcont			;				1/2 \
+		brcc	chcont			;				1/2 \_
 		ldi	r20, 31			;				1   |-- 4/2
 		rjmp	chcont			;				2   /
 
