@@ -10,7 +10,7 @@ tracker/%: CFLAGS=-Wall
 tracker/%: CC=gcc
 
 target/%: CPPFLAGS=-I. -D${CPU_CPP_NAME}
-target/%: CFLAGS=-O2 -B/usr/avr/lib -Wall -mmcu=${CPU_CC_NAME}
+target/%: CFLAGS=-O2 -g -B/usr/avr/lib -Wall -mmcu=${CPU_CC_NAME}
 target/%: ASFLAGS=-mmcu=${CPU_CC_NAME}
 target/%: LDFLAGS=-Tdata 0x800160 -M -m ${CPU_LD_NAME}
 target/%: CC=avr-gcc
@@ -38,7 +38,10 @@ target/flash.o: target/main.c target/asm.S tracker/exported.s progenv/gentimes.c
 target/flash.hex: target/flash.o
 	${LD} ${LDFLAGS} --oformat ihex -o $@ $^ > target/mapfile
 
+target/flash.da: target/flash.o
+	avr-objdump -S target/flash.o > target/flash.da
+
 clean:
 	rm -f tracker/*.o tracker/tracker
-	rm -f target/*.o target/mapfile target/flash.hex
+	rm -f target/*.o target/mapfile target/flash.*
 	rm -f progenv/gentimes.[ch]
