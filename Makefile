@@ -17,7 +17,7 @@ target/%: CC=avr-gcc
 target/%: LD=avr-ld
 target/%: AS=avr-as
 
-all:	tracker/tracker target/flash.hex
+all:	tracker/tracker target/test2.hex
 
 progenv/gentimes.c: progenv/gentimes.pl
 	perl $^ --mode=C --fcpu=${CPU_FREQUENCY} --samprate=${SAMPLE_RATE} > $@
@@ -25,23 +25,28 @@ progenv/gentimes.c: progenv/gentimes.pl
 progenv/gentimes.h: progenv/gentimes.pl
 	perl $^ --mode=H --fcpu=${CPU_FREQUENCY} --samprate=${SAMPLE_RATE} > $@
 
-tracker/chip.o: progenv/gentimes.h
-target/flash.o: progenv/gentimes.h
 progenv/gentimes.o: progenv/gentimes.h
+
+.INTERMEDIATE: songs/%.h
+songs/%.s songs/%.h : songs/%.song | tracker/tracker
+	tracker/tracker --export $^ songs/$*
+
+tracker/chip.o: progenv/gentimes.h
 
 tracker/tracker: tracker/main.o tracker/chip.o tracker/gui.o progenv/gentimes.o
 	${CC} ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -o $@ $^ 
 
-target/flash.o: target/main.c target/asm.S tracker/exported.s progenv/gentimes.c
-	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ $^
+target/%.o: target/main.c target/asm.S songs/%.s progenv/gentimes.c | progenv/gentimes.h songs/%.h 
+	${CC} ${CPPFLAGS} ${CFLAGS} --include="songs/$*.h" -o $@ $^
 
-target/flash.hex: target/flash.o
+target/%.hex: target/%.o
 	${LD} ${LDFLAGS} --oformat ihex -o $@ $^ > target/mapfile
 
-target/flash.da: target/flash.o
-	avr-objdump -S target/flash.o > target/flash.da
+target/%.da: target/%.o
+	avr-objdump -S $^ > $@
 
 clean:
+	rm -f songs/*.s songs/*.h
 	rm -f tracker/*.o tracker/tracker
-	rm -f target/*.o target/mapfile target/flash.*
+	rm -f target/*.o target/mapfile target/*.hex
 	rm -f progenv/gentimes.[ch]
