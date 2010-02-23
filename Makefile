@@ -50,7 +50,7 @@ target/%.da: target/%.o
 	avr-objdump -S $^ > $@
 
 clean:
-	rm -f songs/*.s songs/*.h
+	rm -f songs/*.s songs/*.h songs/*.raw
 	rm -f tracker/*.o tracker/tracker
 	rm -f target/*.o target/mapfile target/*.hex
 	rm -f progenv/gentimes.[ch]
