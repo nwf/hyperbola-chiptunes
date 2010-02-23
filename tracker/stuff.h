@@ -31,6 +31,7 @@ void guiloop();
 void startplaysong(int);
 void startplaytrack(int);
 void loadfile(char *);
+void export(char *);
 
 extern u8 trackpos;
 extern u8 playtrack;

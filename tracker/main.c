@@ -62,36 +62,51 @@ void audiocb(void *userdata, Uint8 *buf, int len) {
 }
 
 int main(int argc, char **argv) {
-	SDL_AudioSpec requested, obtained;
-
-	if(argc != 2) {
-		err(1, "usage: %s <filename>\n", argv[0]);
-	}
-
-	SDL_Init(SDL_INIT_AUDIO);
-
-	atexit(SDL_Quit);
-
-	requested.freq = 16000;
-	requested.format = AUDIO_U8;
-	requested.samples = 256;
-	requested.callback = audiocb;
-	requested.channels = 1;
-	if(SDL_OpenAudio(&requested, &obtained) == -1) {
-		err(1, "SDL_OpenAudio");
-	}
-
-	fprintf(stderr, "freq %d\n", obtained.freq);
-	fprintf(stderr, "samples %d\n", obtained.samples);
-
 	initchip();
 	initgui();
 
-	loadfile(argv[1]);
+	if(!strcmp("--audio", argv[1])) {
+		loadfile(argv[2]);
 
-	SDL_PauseAudio(0);
+        char *pcmname = (argc > 2) ? argv[3] : "audio" ;
+        FILE *f = fopen(pcmname, "w");
 
-	guiloop();
+        startplaysong(0);
+
+        while(playsong) {
+            u8 res = interrupthandler();
+            fwrite(&res, 1, 1, f);
+        }
+        fclose(f);
+	} else if(!strcmp("--export", argv[1])) {
+		loadfile(argv[2]);
+        char *exportname = (argc > 2) ? argv[3] : "export" ;
+		export(exportname);
+	} else {
+		if(argc != 2) {
+			err(1, "usage: %s <filename>\n", argv[0]);
+		}
+
+	    SDL_AudioSpec requested, obtained;
+    	SDL_Init(SDL_INIT_AUDIO);
+	    atexit(SDL_Quit);
+
+		requested.freq = 16000;
+		requested.format = AUDIO_U8;
+		requested.samples = 256;
+		requested.callback = audiocb;
+		requested.channels = 1;
+		if(SDL_OpenAudio(&requested, &obtained) == -1) {
+			err(1, "SDL_OpenAudio");
+		}
+		
+		fprintf(stderr, "freq %d\n", obtained.freq);
+		fprintf(stderr, "samples %d\n", obtained.samples);
+		
+		loadfile(argv[1]);
+		SDL_PauseAudio(0);
+		guiloop();
+	}
 	
 	return 0;
 }

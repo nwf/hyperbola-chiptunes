@@ -21,7 +21,7 @@ char filename[1024];
 
 char *notenames[] = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "H-"};
 
-char *validcmds = "0dfijlmtvw~+=";
+char *validcmds = "0dfijlmtvw~+=S";
 
 /*char *keymap[2] = {
 	";oqejkixdbhmwnvsz",
@@ -487,11 +487,13 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
 	exportseek = 0;
 
 	for(i = 0; i < 16 + maxtrack; i++) {
+        // if(exportfile) fprintf(exportfile, "songdata_resources%d:\n", i);
 		exportchunk(resources[i], 13);
 	}
 
 	resources[nres++] = alignbyte();
 
+    // if(exportfile) fprintf(exportfile, "songdata_song:\n");
 	for(i = 0; i < songlen; i++) {
 		for(j = 0; j < 4; j++) {
 			if(song[i].transp[j]) {
@@ -508,6 +510,7 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
 	for(i = 1; i < 16; i++) {
 		resources[nres++] = alignbyte();
 
+        // if(exportfile) fprintf(exportfile, "songdata_instrument%d:\n", i);
 		if(instrument[i].length > 1) {
 			for(j = 0; j < instrument[i].length; j++) {
 				exportchunk(packcmd(instrument[i].line[j].cmd), 8);
@@ -521,6 +524,7 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
 	for(i = 1; i <= maxtrack; i++) {
 		resources[nres++] = alignbyte();
 
+        // if(exportfile) fprintf(exportfile, "songdata_track%d:\n", i);
 		for(j = 0; j < tracklen; j++) {
 			u8 cmd = packcmd(track[i].line[j].cmd[0]);
 
@@ -544,9 +548,18 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
 	}
 }
 
-void export() {
-	FILE *f = fopen("exported.s", "w");
-	FILE *hf = fopen("exported.h", "w");
+void export(char *stem) {
+    int blen = strlen(stem) + 5;
+    char *buf = alloca(blen);
+    if(!buf) {
+        return;
+    }
+    snprintf(buf, blen, "%s.s", stem);
+	FILE *f = fopen(buf, "w");
+
+    snprintf(buf, blen, "%s.h", stem);
+	FILE *hf = fopen(buf, "w");
+
 	int i, j;
 	int maxtrack = 0;
 	int resources[256];
@@ -650,7 +663,7 @@ void handleinput() {
 			optimize();
 			break;
 		case '%':
-			export();
+			export("export");
 			break;
 		case KEY_LEFT:
 			switch(currtab) {
