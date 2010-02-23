@@ -31,6 +31,10 @@ progenv/gentimes.o: progenv/gentimes.h
 songs/%.s songs/%.h : songs/%.song | tracker/tracker
 	tracker/tracker --export $^ songs/$*
 
+    # For use with e.g. "play --rate 16000 -b8 -L -c1 -e un -t raw"
+songs/%.raw : songs/%.song | tracker/tracker
+	tracker/tracker --audio $^ $@
+
 tracker/chip.o: progenv/gentimes.h
 
 tracker/tracker: tracker/main.o tracker/chip.o tracker/gui.o progenv/gentimes.o
