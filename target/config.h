@@ -1,0 +1,23 @@
+#ifndef _TARGET_CONFIG_H_
+#define _TARGET_CONFIG_H_
+
+/* Original values for lft's hardware: */
+#if 0
+
+#define TARGET_AUDIO_PORT	PORTD
+#define TARGET_AUDIO_PORT_SHIFT 0
+#define TARGET_LIGHT_PORT	PORTC
+#define TARGET_LIGHT_ZERO	0x02
+#define TARGET_LIGHT_ONE	0x10
+
+#endif
+
+#define TARGET_AUDIO_PORT	PORTC
+#define TARGET_AUDIO_DDR	DDRC
+#define TARGET_AUDIO_PORT_SHIFT 2
+#define TARGET_LIGHT_PORT	PORTB
+#define TARGET_LIGHT_DDR	DDRB
+#define TARGET_LIGHT_ZERO	0x01
+#define TARGET_LIGHT_ONE	0x02
+
+#endif

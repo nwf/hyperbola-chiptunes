@@ -1,4 +1,6 @@
 #include <progenv/trackerfmt.h>
+#include <target/config.h>
+#include <avr/io.h>
 
 		.global	readsongbyte
 		.global	watchdogoff
@@ -32,7 +34,8 @@ watchdogoff:
 		ret
 
 __vector_14:
-		; Entire interrupt routine, worst case: 308 clocks.
+		; Entire interrupt routine, worst case:
+		; 308 + TARGET_AUDIO_PORT_SHIFT clocks.
 
 		; ---------------------------------------------
 		; Save processor state.
@@ -55,10 +58,13 @@ __vector_14:
 
 		; ---------------------------------------------
 		; Write previously generated sample to PORTD.
-		; 3 clocks.
+		; 3 + TARGET_AUDIO_PORT_SHIFT clocks.
 
-		lds	r24, lastsample		;				2
-		out	0x0b, r24		;				1
+		lds	r24, lastsample	        	;			2
+.rept TARGET_AUDIO_PORT_SHIFT
+		lsr	r24				;	TARGET_AUDIO_PORT_SHIFT
+.endr
+		out	_SFR_IO_ADDR(TARGET_AUDIO_PORT), r24        ;		1
 
 		; ---------------------------------------------
 		; Run the noise shift register.

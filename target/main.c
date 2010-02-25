@@ -1,5 +1,4 @@
 #include <avr/io.h>
-#include <avr/signal.h>
 #include <avr/interrupt.h>
 
 #define TRACKLEN 32
@@ -7,6 +6,7 @@
 #include <progenv/types.h>
 #include <progenv/gentimes.h>
 #include <progenv/trackerfmt.h>
+#include <target/config.h>
 
 volatile u8 callbackwait;
 volatile u8 lastsample;
@@ -25,8 +25,6 @@ u32 noiseseed = 1;
 
 u8 light[2];
 
-#include "tracker/exported.h"
-
 const u8 validcmds[] = "0dfijlmtvw~+=";
 
 volatile struct oscillator {
@@ -35,7 +33,7 @@ volatile struct oscillator {
 	u16	duty;
 	u8	waveform;
 	u8	volume;	// 0-255
-} osc[4];
+} osc[NR_CHAN];
 
 struct trackline {
 	u8	note;
@@ -73,7 +71,7 @@ struct channel {
 	u8			vpos;
 	s16			inertia;
 	u16			slur;
-} channel[4];
+} channel[NR_CHAN];
 
 u16 resources[16 + MAXTRACK];
 
@@ -170,7 +168,6 @@ void runcmd(u8 ch, u8 cmd, u8 param) {
 
 void playroutine() {			// called at 50 Hz
 	u8 ch;
-	u8 lights;
 
 	if(playsong) {
 		if(trackwait) {
@@ -183,7 +180,7 @@ void playroutine() {			// called at 50 Hz
 					if(songpos >= SONGLEN) {
 						playsong = 0;
 					} else {
-						for(ch = 0; ch < 4; ch++) {
+						for(ch = 0; ch < NR_CHAN; ch++) {
 							u8 gottransp;
 							u8 transp;
 
@@ -206,7 +203,7 @@ void playroutine() {			// called at 50 Hz
 			}
 
 			if(playsong) {
-				for(ch = 0; ch < 4; ch++) {
+				for(ch = 0; ch < NR_CHAN; ch++) {
 					if(channel[ch].tnum) {
 						u8 note, instr, cmd, param;
 						u8 fields;
@@ -257,7 +254,7 @@ void playroutine() {			// called at 50 Hz
 		}
 	}
 
-	for(ch = 0; ch < 4; ch++) {
+	for(ch = 0; ch < NR_CHAN; ch++) {
 		s16 vol;
 		u16 duty;
 		u16 slur;
@@ -306,16 +303,18 @@ void playroutine() {			// called at 50 Hz
 		channel[ch].vpos += channel[ch].vrate;
 	}
 
-	lights = 0;
 	if(light[0]) {
 		light[0]--;
-		lights |= 0x02;
-	}
+		TARGET_LIGHT_PORT |= TARGET_LIGHT_ZERO;
+	} else {
+		TARGET_LIGHT_PORT &= ~TARGET_LIGHT_ZERO;
+    }
 	if(light[1]) {
 		light[1]--;
-		lights |= 0x10;
+		TARGET_LIGHT_PORT |= TARGET_LIGHT_ONE;
+	} else {
+		TARGET_LIGHT_PORT &= ~TARGET_LIGHT_ONE;
 	}
-	PORTC = lights;
 }
 
 void initresources() {
@@ -336,10 +335,10 @@ int main() {
 	CLKPR = 0x80;
 	CLKPR = 0x80;
 
-	DDRC = 0x12;
-	DDRD = 0xff;
+	TARGET_LIGHT_DDR = TARGET_LIGHT_ZERO | TARGET_LIGHT_ONE;
+	TARGET_AUDIO_DDR = 0xff;
 
-	PORTC = 0;
+	TARGET_AUDIO_PORT = 0;
 
 	timetoplay = 0;
 	trackwait = 0;
