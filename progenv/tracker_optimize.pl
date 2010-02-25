@@ -31,10 +31,11 @@ if (1 == $version) {
     $channels = 4;
 }
 
-my %track_rename = ( );
 my %songrows = ( );
 my %trackrows = ( );
+my %track_rename = ( );
 my %instrumentrows = ( );
+my %instrument_rename = ( );
 
 while (my $LINE = <STDIN>) {
     chomp $LINE;
@@ -68,6 +69,7 @@ while (my $LINE = <STDIN>) {
             if exists $trackrows{$tix} and exists $trackrows{$tix}{$ix};
         $trackrows{$tix} = { } if not exists $trackrows{$tix};
         $trackrows{$tix}{$ix} = [$note, $instr, $c0, $p0, $c1, $p1];
+        $instrument_rename{$instr} = -1;
     } elsif($cmd eq "instrumentline") {
         my ($iix, $ix, $cmd, $param, @junk) = split ' ', $rest;
         die "Malformed instrumentline: '$LINE'"
@@ -81,19 +83,39 @@ while (my $LINE = <STDIN>) {
     }
 }
 
-# Rename tracks
-{
-    my $new_track_num = 0;
-    foreach my $track (sort keys %track_rename) {
-        $track_rename{$track} = $new_track_num++;
-    }
-}
-
 # search for unused tracks
 foreach my $tix (keys %trackrows) {
     if (not exists $track_rename{$tix}) {
         print STDERR "Pruning unused track $tix\n";
         delete $trackrows{$tix};
+    }
+}
+
+# Rename tracks
+{
+    $track_rename{'00'} = 0;
+    my $new_track_num = 1;
+    foreach my $track (sort keys %track_rename) {
+        next if $track_rename{$track} != -1;
+        $track_rename{$track} = $new_track_num++;
+    }
+}
+
+# search for unused instruments
+foreach my $iix (keys %instrumentrows) {
+    if (not exists $instrument_rename{$iix}) {
+        print STDERR "Unused instrument $iix\n";
+        delete $instrumentrows{$iix};
+    }
+}
+
+# Rename instruments
+{
+    $instrument_rename{'00'} = 0;
+    my $new_instr_num = 1;
+    foreach my $instr (sort keys %instrument_rename) {
+        next if $instrument_rename{$instr} != -1;
+        $instrument_rename{$instr} = $new_instr_num++;
     }
 }
 
