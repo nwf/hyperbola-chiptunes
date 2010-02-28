@@ -54,6 +54,7 @@ const struct track trackdata = {
 };
 
 void audiocb(void *userdata, Uint8 *buf, int len) {
+    (void) userdata;        /* Unused parameter */
 	int i;
 
 	for(i = 0; i < len; i++) {
