@@ -19,7 +19,7 @@ volatile struct oscillator {
 	u16	duty;
 	u8	waveform;
 	u8	volume;	// 0-255
-} osc[4];
+} osc[NR_CHAN];
 
 struct channel {
 	u8	tnum;
@@ -39,12 +39,12 @@ struct channel {
 	u8	vpos;
 	s16	inertia;
 	u16	slur;
-} channel[4];
+} channel[NR_CHAN];
 
 void silence() {
 	u8 i;
 
-	for(i = 0; i < 4; i++) {
+	for(i = 0; i < NR_CHAN; i++) {
 		osc[i].volume = 0;
 	}
 	playsong = 0;
@@ -144,7 +144,7 @@ void playroutine() {			// called at 50 Hz
 					if(songpos >= songlen) {
 						playsong = 0;
 					} else {
-						for(ch = 0; ch < 4; ch++) {
+						for(ch = 0; ch < NR_CHAN; ch++) {
 							u8 tmp[2];
 
 							readsong(songpos, ch, tmp);
@@ -157,7 +157,7 @@ void playroutine() {			// called at 50 Hz
 			}
 
 			if(playtrack || playsong) {
-				for(ch = 0; ch < 4; ch++) {
+				for(ch = 0; ch < NR_CHAN; ch++) {
 					if(channel[ch].tnum) {
 						struct trackline tl;
 						u8 instr = 0;
@@ -194,7 +194,7 @@ void playroutine() {			// called at 50 Hz
 		}
 	}
 
-	for(ch = 0; ch < 4; ch++) {
+	for(ch = 0; ch < NR_CHAN; ch++) {
 		s16 vol;
 		u16 duty;
 		u16 slur;
@@ -282,7 +282,7 @@ u8 interrupthandler()
 	}
 
 	acc = 0;
-	for(i = 0; i < 4; i++) {
+	for(i = 0; i < NR_CHAN; i++) {
 		s8 value; // [-32,31]
 
 		switch(osc[i].waveform) {
