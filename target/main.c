@@ -78,12 +78,12 @@ struct unpacker songup;
 u8 readsongbyte(u16 offset);
 void watchdogoff();
 
-void initup(struct unpacker *up, u16 offset) {
+static void initup(struct unpacker *up, u16 offset) {
 	up->nextbyte = offset;
 	up->bits = 0;
 }
 
-u8 readbit(struct unpacker *up) {
+static u8 readbit(struct unpacker *up) {
 	u8 val;
 
 	if(!up->bits) {
@@ -111,12 +111,12 @@ u16 readchunk(struct unpacker *up, u8 n) {
 	return val;
 }
 
-void readinstr(u8 num, u8 pos, u8 *dest) {
+static void readinstr(u8 num, u8 pos, u8 *dest) {
 	dest[0] = readsongbyte(resources[num] + 2 * pos + 0);
 	dest[1] = readsongbyte(resources[num] + 2 * pos + 1);
 }
 
-void runcmd(u8 ch, u8 cmd, u8 param) {
+static void runcmd(u8 ch, u8 cmd, u8 param) {
 	switch(cmd) {
 		case CMD_ISTOP:
 			channel[ch].inum = 0;
@@ -164,7 +164,7 @@ void runcmd(u8 ch, u8 cmd, u8 param) {
 	}
 }
 
-void playroutine() {			// called at 50 Hz
+static void playroutine() {
 	u8 ch;
 
 	if(playsong) {
