@@ -16,7 +16,6 @@ volatile u8 lastsample;
 volatile u8 timetoplay;
 
 volatile u8 test;
-volatile u8 testwait;
 
 u8 trackwait;
 u8 trackpos;
@@ -27,6 +26,7 @@ u32 noiseseed = 1;
 
 u8 light[2];
 
+/* The layout of this structure is known to assembler */
 volatile struct oscillator {
 	u16	freq;
 	u16	phase;
@@ -34,17 +34,6 @@ volatile struct oscillator {
 	u8	waveform;
 	u8	volume;	// 0-255
 } osc[NR_CHAN];
-
-struct trackline {
-	u8	note;
-	u8	instr;
-	u8	cmd[2];
-	u8	param[2];
-	};
-
-struct track {
-	struct trackline	line[TRACKLEN];
-};
 
 struct unpacker {
 	u16	nextbyte;
