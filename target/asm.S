@@ -36,10 +36,12 @@ __vector_14:
 		; 3 + TARGET_AUDIO_PORT_SHIFT clocks.
 
 		lds	r24, lastsample	        	;			2
+#ifdef TARGET_AUDIO_PORT
 .rept TARGET_AUDIO_PORT_SHIFT
 		lsr	r24				;	TARGET_AUDIO_PORT_SHIFT
 .endr
 		out	_SFR_IO_ADDR(TARGET_AUDIO_PORT), r24        ;		1
+#endif
 
 		; ---------------------------------------------
 		; Run the noise shift register.

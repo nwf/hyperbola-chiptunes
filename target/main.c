@@ -305,6 +305,7 @@ static void playroutine() {
 		channel[ch].vpos += channel[ch].vrate;
 	}
 
+#ifdef TARGET_LIGHT_PORT
 	if(light[0]) {
 		light[0]--;
 		TARGET_LIGHT_PORT |= TARGET_LIGHT_ZERO;
@@ -317,6 +318,7 @@ static void playroutine() {
 	} else {
 		TARGET_LIGHT_PORT &= ~TARGET_LIGHT_ONE;
 	}
+#endif
 }
 
 void initresources() {
