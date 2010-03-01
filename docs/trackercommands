@@ -1,18 +1,18 @@
 ENC	CHAR	COMMAND
 ---	----	-------
-0	'0'	CHAN OFF (param ignored)
-1	'd'	OSC  DUTY (param = top 8 bits, bottom 8 set to 0)
-2	'f'	CHAN VOLUME DERIVATIVE (param)
-3	'i'	CHAN INTERTIA (param << 1)
-4	'j'	CHAN INSTRUMENT OFFSET (param)
-5	'l'	CHAN BEND DERIVATIVE (param)
-6	'm'	CHAN DUTY DERIVATIVE (param << 6)
-7	't'	CHAT INSTRUMENT WAIT (param)
-8	'v'	OSC  VOLUME (param)
-9	'w'	OSC  WAVEFORM (param)
-A	'+'	CHAN INSTRUMENT NOTE (param + tnote - 48)
-B	'='	CHAN INSTRUMENT NOTE (param)
-C	'~'	CHAN VDEPTH AND VRATE (param == ddddrrrr)
+0	'0'(30)	n/a  INSTRUMENT END (not valid in channel ctx) (param ignored)
+1 	'd'(64)	OSC  DUTY (param = top 8 bits, bottom 8 set to 0)
+2	'f'(66)	CHAN VOLUME DERIVATIVE (param)
+3	'i'(69)	CHAN INTERTIA (param << 1)
+4	'j'(6A)	CHAN INSTRUMENT OFFSET (param)
+5	'l'(6C)	CHAN BEND DERIVATIVE (param)
+6	'm'(6D)	CHAN DUTY DERIVATIVE (param << 6)
+7	't'(74)	CHAN INSTRUMENT WAIT (param)
+8	'v'(76)	OSC  VOLUME (param)
+9	'w'(77)	OSC  WAVEFORM (param)
+A	'~'(7E)	CHAN VDEPTH AND VRATE (param == ddddrrrr)
+B	'+'(2B)	CHAN INSTRUMENT NOTE (param + tnote - 48)
+C	'='(3D)	CHAN INSTRUMENT NOTE (param)
 D	n/a
 E	n/a
 F	n/a
