@@ -21,7 +21,7 @@
     /** Set channel volume derivative */
 #define CMD_VOLUMED     0x2
     /** Set channel inertia (param << 1) */
-#define CMD_INTERTIA    0x3
+#define CMD_INERTIA     0x3
     /** Set channel instrument offset */
 #define CMD_IJUMP       0x4
     /** Set channel bend derivative */
@@ -35,11 +35,11 @@
     /** Set oscillator waveform */
 #define CMD_WAVEFORM    0x9
     /** Set channel instrument note (transposed) */
-#define CMD_INOTETRANS  0xA     
+#define CMD_INOTETRANS  0xB
     /** Set channel instrument note (absolute) */
-#define CMD_INOTE       0xB
+#define CMD_INOTE       0xC
     /** Set channel vibrato depth and rate */
-#define CMD_VIBRATO     0xC
+#define CMD_VIBRATO     0xA
 
     /* RESERVED 0x0D */
     /* RESERVED 0x0E */

@@ -25,8 +25,6 @@ u32 noiseseed = 1;
 
 u8 light[2];
 
-const u8 validcmds[] = "0dfijlmtvw~+=";
-
 volatile struct oscillator {
 	u16	freq;
 	u16	phase;
@@ -119,44 +117,44 @@ void readinstr(u8 num, u8 pos, u8 *dest) {
 }
 
 void runcmd(u8 ch, u8 cmd, u8 param) {
-	switch(validcmds[cmd]) {
-		case '0':
+	switch(cmd) {
+		case CMD_ISTOP:
 			channel[ch].inum = 0;
 			break;
-		case 'd':
+		case CMD_DUTY:
 			osc[ch].duty = param << 8;
 			break;
-		case 'f':
+		case CMD_VOLUMED:
 			channel[ch].volumed = param;
 			break;
-		case 'i':
+		case CMD_INERTIA:
 			channel[ch].inertia = param << 1;
 			break;
-		case 'j':
+		case CMD_IJUMP:
 			channel[ch].iptr = param;
 			break;
-		case 'l':
+		case CMD_BENDD:
 			channel[ch].bendd = param;
 			break;
-		case 'm':
+		case CMD_DUTYD:
 			channel[ch].dutyd = param << 6;
 			break;
-		case 't':
+		case CMD_IWAIT:
 			channel[ch].iwait = param;
 			break;
-		case 'v':
+		case CMD_VOLUME:
 			osc[ch].volume = param;
 			break;
-		case 'w':
+		case CMD_WAVEFORM:
 			osc[ch].waveform = param;
 			break;
-		case '+':
+		case CMD_INOTETRANS:
 			channel[ch].inote = param + channel[ch].tnote - 12 * 4;
 			break;
-		case '=':
+		case CMD_INOTE:
 			channel[ch].inote = param;
 			break;
-		case '~':
+		case CMD_VIBRATO:
 			if(channel[ch].vdepth != (param >> 4)) {
 				channel[ch].vpos = 0;
 			}
