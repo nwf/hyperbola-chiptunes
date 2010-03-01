@@ -2,24 +2,11 @@
 #include <target/config.h>
 #include <avr/io.h>
 
-		.global	watchdogoff
 		.global	__vector_14
 
 		.extern	lastsample
 		.extern	noiseseed
 		.extern	osc
-
-watchdogoff:
-		wdr
-		in	r24, 0x34		; mcusr
-		andi	r24, 0xf7
-		out	0x34, r24
-		lds	r24, 0x60		; wdtcsr
-		ori	r24, 0x18
-		sts	0x60, r24
-		ldi	r24, 0x00
-		sts	0x60, r24
-		ret
 
 __vector_14:
 		; Entire interrupt routine, worst case:

@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 
 #define TRACKLEN 32
 
@@ -76,9 +77,21 @@ u16 resources[16 + MAXTRACK];
 
 struct unpacker songup;
 
-void watchdogoff();
 extern u8 songdata[] __ATTR_PROGMEM__;
 #define readsongbyte(x) pgm_read_byte_near(&songdata[x]);
+
+/* This is the AVR-LIBC standard dance for disabling the WDT */
+    static uint8_t mcusr_mirror __attribute__ ((section (".noinit")));
+
+    void get_mcusr(void) \
+      __attribute__((naked)) \
+      __attribute__((section(".init3")));
+    void get_mcusr(void)
+    {
+      mcusr_mirror = MCUSR;
+      MCUSR = 0;
+      wdt_disable();
+    }
 
 static void initup(struct unpacker *up, u16 offset) {
 	up->nextbyte = offset;
@@ -331,7 +344,6 @@ void initresources() {
 
 int main() {
 	asm("cli");
-	watchdogoff();
 	CLKPR = 0x80;
 	CLKPR = 0x80;
 
