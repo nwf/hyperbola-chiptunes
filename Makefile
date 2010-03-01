@@ -6,11 +6,11 @@ SAMPLE_RATE=16000
 
 tracker/%: CPPFLAGS=-I.
 tracker/%: LDFLAGS=-lSDL -lncurses
-tracker/%: CFLAGS=-Wall
+tracker/%: CFLAGS=-Wall -Wextra -Werror
 tracker/%: CC=gcc
 
 target/%: CPPFLAGS=-I. -D${CPU_CPP_NAME}
-target/%: CFLAGS=-O2 -g -B/usr/avr/lib -Wall -mmcu=${CPU_CC_NAME}
+target/%: CFLAGS=-O2 -g -B/usr/avr/lib -Wall -Wextra -Werror -mmcu=${CPU_CC_NAME}
 target/%: ASFLAGS=-mmcu=${CPU_CC_NAME}
 target/%: LDFLAGS=-Tdata 0x800160 -M -m ${CPU_LD_NAME}
 target/%: CC=avr-gcc
@@ -40,7 +40,7 @@ tracker/chip.o: progenv/gentimes.h
 tracker/tracker: tracker/main.o tracker/chip.o tracker/gui.o progenv/gentimes.o
 	${CC} ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -o $@ $^ 
 
-target/%.o: target/main.c target/asm.S songs/%.s progenv/gentimes.c | progenv/gentimes.h songs/%.h 
+target/%.o: target/main.c target/asm.S songs/%.s progenv/gentimes.c target/config.h | progenv/gentimes.h songs/%.h
 	${CC} ${CPPFLAGS} ${CFLAGS} --include="songs/$*.h" -o $@ $^
 
 target/%.hex: target/%.o
