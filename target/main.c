@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 
 #define TRACKLEN 32
 
@@ -75,8 +76,9 @@ u16 resources[16 + MAXTRACK];
 
 struct unpacker songup;
 
-u8 readsongbyte(u16 offset);
 void watchdogoff();
+extern u8 songdata[] __ATTR_PROGMEM__;
+#define readsongbyte(x) pgm_read_byte_near(&songdata[x]);
 
 static void initup(struct unpacker *up, u16 offset) {
 	up->nextbyte = offset;

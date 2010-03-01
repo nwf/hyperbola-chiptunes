@@ -2,24 +2,12 @@
 #include <target/config.h>
 #include <avr/io.h>
 
-		.global	readsongbyte
 		.global	watchdogoff
 		.global	__vector_14
 
 		.extern	lastsample
 		.extern	noiseseed
 		.extern	osc
-		.extern	songdata
-
-readsongbyte:
-                ldi     r30, lo8(songdata)
-                add     r30, r24
-                ldi     r31, hi8(songdata)
-                adc     r31, r25
-                lpm
-                mov     r24, r0
-                mov     r25, r1
-                ret
 
 watchdogoff:
 		wdr
