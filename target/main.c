@@ -333,16 +333,7 @@ void initresources() {
 	initup(&songup, resources[0]);
 }
 
-int main() {
-	asm("cli");
-	CLKPR = 0x80;
-	CLKPR = 0x80;
-
-	TARGET_LIGHT_DDR = TARGET_LIGHT_ZERO | TARGET_LIGHT_ONE;
-	TARGET_AUDIO_DDR = 0xff;
-
-	TARGET_AUDIO_PORT = 0;
-
+void initsong() {
 	timetoplay = 0;
 	trackwait = 0;
 	trackpos = 0;
@@ -357,7 +348,19 @@ int main() {
 	channel[2].inum = 0;
 	osc[3].volume = 0;
 	channel[3].inum = 0;
+}
 
+int main() {
+	asm("cli");
+	CLKPR = 0x80;
+	CLKPR = 0x80;
+
+	TARGET_LIGHT_DDR = TARGET_LIGHT_ZERO | TARGET_LIGHT_ONE;
+	TARGET_AUDIO_DDR = 0xff;
+
+	TARGET_AUDIO_PORT = 0;
+
+	initsong();
 	initresources();
 
 	TCCR0A = 0x02;
