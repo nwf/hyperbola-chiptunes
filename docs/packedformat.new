@@ -1,0 +1,103 @@
+This is a proposal for a new packed format which permits multiple songs to
+coexist in flash, increases flexibility of the format, needs fewer bytes
+of RAM to read easily, and possibly enables dynamic reprogramming.
+
+It is not yet implemented in any real way.  Some measurements have been
+made to assess the impact of various changes.  Regions of doubt are
+flagged with XXX.
+
+indirection table (new):
+    entries len0 len1 len2 len3 ... len(entries)    -- (each 8 bits)
+                                                    -- (entries < 256)
+    data0 -- of length len0
+    data1 -- of length len1
+    ...
+    data* are byte-padded at the end but are packed internally
+    
+2 indirection tables: one for instruments, one for tracks (see below).
+The length limits imposed limit instruments to 170 new-style instrument
+actions and place no limits on track lengths (TRACKLEN is 32; there's room
+for 52 new-style track rows, even using the longest encoding.)
+
+song header (new):
+    instrument1 indirection address    (8 bits)
+    instrument2 ...
+    ...
+    instrument15 ...
+    number of tracks (8 bits, limited to 6 bits used)
+    track0 indirection address (8 bits)
+    ...
+    trackN ...
+    
+    (Maximum size is 15 + 1 + 64 = 80 bytes)
+
+song:
+    0xxxxxx                = indirected track x, transp 0
+    1xxxxxxyyyy            = indirected track x, transp y (signed)
+    (times four, for each line)
+
+Songs are now prefixed by their header and stored at arbitrary locations
+in (flash) memory.  There is a fixed-width table of 16-bit addresses used
+to find the ith song.
+
+(Note that we have eliminated the resource list from the front of the song
+in exchange for the indirection addresses.  Our new addresses are 8 bits
+while the old ones were 13; we therefore expect to save 10 + tracks*5/8
+bytes using the new form; additionally, we don't need to store all those
+16-bit addresses in RAM any more.)
+
+instrument:
+    0000                      = end
+    ccccpppppppp        = command c, parameter p
+    (for each cmd)
+    
+    Note tht the reduction to 12 bits (from 16) doesn't destroy
+    seekability, since we know that even commands begin on a byte
+    boundary and odd begin on a byte-and-a-nibble boundary.
+    
+    (In the demo song, 273 bytes are devoted to instruments; we should
+    expect to free up a little under 69 bytes then, or a little over four
+    bytes per instrument on average.)
+
+    XXX Despite the gains, this restricts us from growing the command
+    vocabulary available to instruments.  That might be OK, as there
+    seem to be few we actually want, but
+
+track:
+    000                                       = blank line
+    100xxxxxxx                                = note x, instr 0 (last)
+    110xxxxxxxiiii                            = note x, indirected instr i
+    0010cccccpppppppp                         = cmd c, param p
+    0011cccccppppppppcccccpppppppp            = (cmd c, param p) x 2
+    1010xxxxxxxcccccpppppppp                  = note x, instr 0 (last),
+                                                cmd c, param p
+    1011xxxxxxxcccccppppppppcccccpppppppp     = note x, instr 0 (last),
+                                                (cmd c, param p) x 2
+    1110xxxxxxxiiiicccccpppppppp              = note x, indirected instr i,
+                                                 cmd c, param p
+    1111xxxxxxxiiiicccccppppppppcccccpppppppp = note x, indirected instr i,
+                                                (cmd c, param p) x 2
+    (for each line)
+
+    Adding the two-command forms grew the demo song by 26 bytes (which
+    uses none of the two-command forms).  Moving to 5-bit command
+    identifiers grew the song by an additional 18 bytes.
+   
+    (XXX) 
+    Note that this disparity means that there are now commands
+    available only to the track and not instruments (which are still
+    using 4-bit command identifiers for ease of seeking)
+    
+(See docs/trackercommands for the command vocabulary.)
+
+We wanted to add, so far:
+    An OSC INCREMENT PHASE command for very low frequency generation
+    Light control commands
+    Track jump (inter and intra) [maybe track-only]
+    Track leave/attach song control [maybe track-only]
+    Tempo adjustment (callbackwait and trackwait) [maybe track-only]
+    Resource indirection rewrite [maybe track-only] (needs 4 commands)
+
+(Left as future work is consideration of LUTs for waveform generation;
+that seems mostly orthogonal except that we have to specify how the bits
+get layed out eventually.)
