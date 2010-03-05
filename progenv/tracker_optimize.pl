@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Data::Compare;
 
 my $version = 0;
 my $channels = 0;
@@ -33,9 +34,7 @@ if (1 == $version) {
 
 my %songrows = ( );
 my %trackrows = ( );
-my %track_rename = ( );
 my %instrumentrows = ( );
-my %instrument_rename = ( );
 
 while (my $LINE = <STDIN>) {
     chomp $LINE;
@@ -51,6 +50,7 @@ while (my $LINE = <STDIN>) {
 
     if($cmd eq "songline") {
         my ($ix, @tts) = split ' ', $rest;
+        $ix = hex $ix;
         die "Malformed songline (channel mismatch): '$LINE'"
             if ((scalar @tts) != 2*$channels);
         die "Duplicate song row '$ix'." if exists $songrows{$ix};
@@ -58,28 +58,47 @@ while (my $LINE = <STDIN>) {
         for my $i (0..$channels-1) {
             # print " '", $ix, "' '", $tts[2*$i] , "' '", $tts[2*$i+1], "'\n";
 
-            $track_rename{$tts[2*$i]} = -1;
-            push @{$songrows{$ix}}, [$tts[2*$i], $tts[2*$i+1]];
+            push @{$songrows{$ix}}, [hex $tts[2*$i], hex $tts[2*$i+1]];
         }
     } elsif($cmd eq "trackline") {
         my ($tix, $ix, $note, $instr, $c0, $p0, $c1, $p1, @junk) = split ' ', $rest;
+        $tix = hex $tix;
+        $ix = hex $ix;
         die "Malformed trackline: '$LINE'"
             if scalar @junk != 0 or not defined $p1;
         die "Duplicate track row '$tix:$ix'."
             if exists $trackrows{$tix} and exists $trackrows{$tix}{$ix};
         $trackrows{$tix} = { } if not exists $trackrows{$tix};
-        $trackrows{$tix}{$ix} = [$note, $instr, $c0, $p0, $c1, $p1];
-        $instrument_rename{$instr} = -1;
+        my @trackv = map {hex} ($note, $instr, $c0, $p0, $c1, $p1);
+        $trackrows{$tix}{$ix} = \@trackv;
     } elsif($cmd eq "instrumentline") {
         my ($iix, $ix, $cmd, $param, @junk) = split ' ', $rest;
+        $iix = hex $iix;
+        $ix = hex $ix;
         die "Malformed instrumentline: '$LINE'"
             if scalar @junk != 0 or not defined $param;
         die "Duplicate instrument row '$iix:$ix'."
             if exists $instrumentrows{$iix} and exists $instrumentrows{$iix}{$ix};
         $instrumentrows{$iix} = { } if not exists $instrumentrows{$iix};
-        $instrumentrows{$iix}{$ix} = [$cmd, $param];
+        $instrumentrows{$iix}{$ix} = [hex $cmd, hex $param];
     } else {
         die "Unknown line command in '$LINE'";
+    }
+}
+
+my %track_rename = ( );
+my %instrument_rename = ( );
+
+while (my ($six, $w) = each %songrows) {
+    foreach my $v (@$w) {
+        $track_rename{$$v[0]} = -1;
+    }
+}
+
+while (my ($tix, $w) = each %trackrows) {
+    while (my ($ix, $v) = each %{$w}) {
+        my ($note, $iix, $c0, $p0, $c1, $p1) = @$v;
+        $instrument_rename{$iix} = -1;
     }
 }
 
@@ -87,13 +106,12 @@ while (my $LINE = <STDIN>) {
 foreach my $tix (keys %trackrows) {
     if (not exists $track_rename{$tix}) {
         print STDERR "Pruning unused track $tix\n";
-        delete $trackrows{$tix};
     }
 }
 
-# Rename tracks
+# Compute track renames
 {
-    $track_rename{'00'} = 0;
+    $track_rename{0} = 0;
     my $new_track_num = 1;
     foreach my $track (sort keys %track_rename) {
         next if $track_rename{$track} != -1;
@@ -104,14 +122,13 @@ foreach my $tix (keys %trackrows) {
 # search for unused instruments
 foreach my $iix (keys %instrumentrows) {
     if (not exists $instrument_rename{$iix}) {
-        print STDERR "Unused instrument $iix\n";
-        delete $instrumentrows{$iix};
+        print STDERR "Pruning unused instrument $iix\n";
     }
 }
 
-# Rename instruments
+# Compute instrument renames
 {
-    $instrument_rename{'00'} = 0;
+    $instrument_rename{0} = 0;
     my $new_instr_num = 1;
     foreach my $instr (sort keys %instrument_rename) {
         next if $instrument_rename{$instr} != -1;
@@ -119,26 +136,59 @@ foreach my $iix (keys %instrumentrows) {
     }
 }
 
-print "musicchip tune\nversion 1\n\n";
+my %newsongrows = ( );
+my %newtrackrows = ( );
+my %newinstrumentrows = ( );
 
 while (my ($six, $w) = each %songrows) {
-    print "songline $six";
-    foreach my $tts (@$w) {
-        my ($trk, $trn) = @$tts;
-        printf " %02x %s", $track_rename{$trk}, $trn;
-    }
-    print "\n";
+    my @res = map 
+        { my ($trk, $trn) = @$_; [$track_rename{$trk}, $trn] }
+        @$w;
+    $newsongrows{$six} = \@res;
 }
 
 while (my ($tix, $w) = each %trackrows) {
+    next if not exists $track_rename{$tix};
+    $newtrackrows{$track_rename{$tix}} = {};
     while (my ($ix, $v) = each %{$w}) {
-        printf "trackline %02x %s %s\n", $track_rename{$tix}, $ix, (join ' ', @$v);
+        my ($note, $iix, $c0, $p0, $c1, $p1) = @$v;
+        $newtrackrows{$track_rename{$tix}}{$ix} =
+            [$note, $instrument_rename{$iix}, $c0, $p0, $c1, $p1];
     }
 }
 
 while (my ($iix, $w) = each %instrumentrows) {
+    next if not exists $instrument_rename{$iix};
+    $newinstrumentrows{$instrument_rename{$iix}} = $w;
+}
+
+warn "Too many tracks!" if exists $newtrackrows{2**6-1};
+warn "Too many instruments!" if exists $newinstrumentrows{2**4-1};
+
+print "musicchip tune\nversion 1\n\n";
+
+while (my ($six, $w) = each %newsongrows) {
+    printf "songline %02x", $six;
+    foreach my $tts (@$w) {
+        my ($trk, $trn) = @$tts;
+        printf " %02x %02x", $trk, $trn;
+    }
+    print "\n";
+}
+
+while (my ($tix, $w) = each %newtrackrows) {
+    while (my ($ix, $v) = each %{$w}) {
+        my ($note, $iix, $c0, $p0, $c1, $p1) = @$v;
+        printf "trackline %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                $tix, $ix, $note, $iix, $c0, $p0, $c1, $p1;
+    }
+}
+
+while (my ($iix, $w) = each %newinstrumentrows) {
     while (my ($ix, $v) = each %$w) {
-        printf "instrumentline %s %s %s\n", $iix, $ix, (join ' ', @$v);
+        my ($cmd, $param) = @$v;
+        printf "instrumentline %02x %02x %02x %02x\n",
+            $iix, $ix, $cmd, $param;
     }
 }
 
