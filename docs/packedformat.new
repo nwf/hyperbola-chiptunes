@@ -20,6 +20,7 @@ actions and place no limits on track lengths (TRACKLEN is 32; there's room
 for 52 new-style track rows, even using the longest encoding.)
 
 song header (new):
+    number of instruments (8 bits, limited to 4 bits used)
     instrument1 indirection address    (8 bits)
     instrument2 ...
     ...
@@ -35,6 +36,10 @@ song:
     0xxxxxx                = indirected track x, transp 0
     1xxxxxxyyyy            = indirected track x, transp y (signed)
     (times four, for each line)
+
+XXX To allow interactive seeking within a song, we may wish to pad
+this out to 12 bit structures (which will then be 48 bits = 6 bytes
+per row).  That would grow the reference song by 107 bytes.
 
 Songs are now prefixed by their header and stored at arbitrary locations
 in (flash) memory.  There is a fixed-width table of 16-bit addresses used
@@ -54,6 +59,13 @@ instrument:
     Note tht the reduction to 12 bits (from 16) doesn't destroy
     seekability, since we know that even commands begin on a byte
     boundary and odd begin on a byte-and-a-nibble boundary.
+
+    Instruments are stored in alternating order:
+    p0p0p0p0    <-- parameter word for command 0
+    c0c0c1c1    <-- command bits for commands 0 and 1
+    p1p1p1p1    <-- parameter word for command 1
+    since this is simpler to decode in C than the
+    ccccpppp/ppppcccc/pppppppp alternative.
     
     (In the demo song, 273 bytes are devoted to instruments; we should
     expect to free up a little under 69 bytes then, or a little over four
@@ -96,7 +108,7 @@ We wanted to add, so far:
     Track jump (inter and intra) [maybe track-only]
     Track leave/attach song control [maybe track-only]
     Tempo adjustment (callbackwait and trackwait) [maybe track-only]
-    Resource indirection rewrite [maybe track-only] (needs 4 commands)
+    Resource indirection rewrite [maybe track-only]
 
 (Left as future work is consideration of LUTs for waveform generation;
 that seems mostly orthogonal except that we have to specify how the bits
