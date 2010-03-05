@@ -1,5 +1,3 @@
-#define TRACKLEN 32
-
 #include <progenv/types.h>
 #include <progenv/trackerfmt.h>
 

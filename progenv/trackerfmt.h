@@ -5,6 +5,7 @@
 #endif
 
 #define NR_CHAN         4   /**< Number of channels active in the system */
+#define TRACKLEN        32  /**< Rows in a track */
 
 /* Waveform values.  8 bits. */
 #define WF_TRI          0x00    /**< Triangle wave */

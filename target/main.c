@@ -3,8 +3,6 @@
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
 
-#define TRACKLEN 32
-
 #include <progenv/types.h>
 #include <progenv/gentimes.h>
 #include <progenv/trackerfmt.h>
