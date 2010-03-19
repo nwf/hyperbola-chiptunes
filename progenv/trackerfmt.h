@@ -4,6 +4,17 @@
 #ifndef ASSEMBLER
 #endif
 
+	/* Packed format sizes */
+#define PACKSIZE_RESOURCE	13
+#define PACKSIZE_SONGTRACK	6
+#define PACKSIZE_SONGTRANS	4
+#define PACKSIZE_INSTRCMD	8
+#define PACKSIZE_INSTRPAR	8
+#define PACKSIZE_TRACKNOTE	7
+#define PACKSIZE_TRACKINST	4
+#define PACKSIZE_TRACKCMD	4
+#define PACKSIZE_TRACKPAR	8
+
 #define NR_CHAN         4   /**< Number of channels active in the system */
 #define TRACKLEN        32  /**< Rows in a track */
 

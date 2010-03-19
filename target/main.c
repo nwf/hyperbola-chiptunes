@@ -185,9 +185,9 @@ static void playroutine() {
 							u8 transp;
 
 							gottransp = readchunk(&songup, 1);
-							channel[ch].tnum = readchunk(&songup, 6);
+							channel[ch].tnum = readchunk(&songup, PACKSIZE_SONGTRACK);
 							if(gottransp) {
-								transp = readchunk(&songup, 4);
+								transp = readchunk(&songup, PACKSIZE_SONGTRANS);
 								if(transp & 0x8) transp |= 0xf0;
 							} else {
 								transp = 0;
@@ -213,11 +213,11 @@ static void playroutine() {
 						instr = 0;
 						cmd = 0;
 						param = 0;
-						if(fields & 1) note = readchunk(&channel[ch].trackup, 7);
-						if(fields & 2) instr = readchunk(&channel[ch].trackup, 4);
+						if(fields & 1) note = readchunk(&channel[ch].trackup, PACKSIZE_TRACKNOTE);
+						if(fields & 2) instr = readchunk(&channel[ch].trackup, PACKSIZE_TRACKINST);
 						if(fields & 4) {
-							cmd = readchunk(&channel[ch].trackup, 4);
-							param = readchunk(&channel[ch].trackup, 8);
+							cmd = readchunk(&channel[ch].trackup, PACKSIZE_TRACKCMD);
+							param = readchunk(&channel[ch].trackup, PACKSIZE_TRACKPAR);
 						}
 						if(note) {
 							channel[ch].tnote = note + channel[ch].transp;
@@ -249,7 +249,7 @@ static void playroutine() {
 				}
 
 				trackpos++;
-				trackpos &= 31;
+				trackpos &= (TRACKLEN-1);
 			}
 		}
 	}
@@ -325,7 +325,7 @@ void initresources() {
 
 	initup(&up, 0);
 	for(i = 0; i < 16 + MAXTRACK; i++) {
-		resources[i] = readchunk(&up, 13);
+		resources[i] = readchunk(&up, PACKSIZE_RESOURCE);
 	}
 
 	initup(&songup, resources[0]);

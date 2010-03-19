@@ -488,21 +488,21 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
 
 	for(i = 0; i < 16 + maxtrack; i++) {
         // if(exportfile) fprintf(exportfile, "songdata_resources%d:\n", i);
-		exportchunk(resources[i], 13);
+		exportchunk(resources[i], PACKSIZE_RESOURCE);
 	}
 
 	resources[nres++] = alignbyte();
 
-    // if(exportfile) fprintf(exportfile, "songdata_song:\n");
+    if(exportfile) fprintf(exportfile, "songdata_song:\n");
 	for(i = 0; i < songlen; i++) {
-		for(j = 0; j < 4; j++) {
+		for(j = 0; j < NR_CHAN; j++) {
 			if(song[i].transp[j]) {
 				exportchunk(1, 1);
-				exportchunk(song[i].track[j], 6);
-				exportchunk(song[i].transp[j], 4);
+				exportchunk(song[i].track[j], PACKSIZE_SONGTRACK);
+				exportchunk(song[i].transp[j], PACKSIZE_SONGTRANS);
 			} else {
 				exportchunk(0, 1);
-				exportchunk(song[i].track[j], 6);
+				exportchunk(song[i].track[j], PACKSIZE_SONGTRACK);
 			}
 		}
 	}
@@ -513,12 +513,12 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
         // if(exportfile) fprintf(exportfile, "songdata_instrument%d:\n", i);
 		if(instrument[i].length > 1) {
 			for(j = 0; j < instrument[i].length; j++) {
-				exportchunk(packcmd(instrument[i].line[j].cmd), 8);
-				exportchunk(instrument[i].line[j].param, 8);
+				exportchunk(packcmd(instrument[i].line[j].cmd), PACKSIZE_INSTRCMD);
+				exportchunk(instrument[i].line[j].param, PACKSIZE_INSTRPAR);
 			}
 		}
 
-		exportchunk(0, 8);
+		exportchunk(0, PACKSIZE_INSTRCMD);
 	}
 
 	for(i = 1; i <= maxtrack; i++) {
@@ -533,16 +533,16 @@ void exportdata(FILE *f, int maxtrack, int *resources) {
 			exportchunk(!!cmd, 1);
 
 			if(track[i].line[j].note) {
-				exportchunk(track[i].line[j].note, 7);
+				exportchunk(track[i].line[j].note, PACKSIZE_TRACKNOTE);
 			}
 
 			if(track[i].line[j].instr) {
-				exportchunk(track[i].line[j].instr, 4);
+				exportchunk(track[i].line[j].instr, PACKSIZE_TRACKINST);
 			}
 
 			if(cmd) {
-				exportchunk(cmd, 4);
-				exportchunk(track[i].line[j].param[0], 8);
+				exportchunk(cmd, PACKSIZE_TRACKCMD);
+				exportchunk(track[i].line[j].param[0], PACKSIZE_TRACKPAR);
 			}
 		}
 	}
