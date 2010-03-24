@@ -367,6 +367,13 @@ int main() {
 
 	TIMSK0 = 0x02;
 
+#ifdef TARGET_AUDIO_PWM_OC2B
+        TCCR2A = (1 << COM2B1) | (1 << WGM21) | (1 << WGM20);
+        TCCR2B = (1 << CS20);
+        OCR2B = 0;
+        DDRD |= (1 << 3);
+#endif
+
 	asm("sei");
 	for(;;) {
 		while(!timetoplay);

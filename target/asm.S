@@ -43,6 +43,12 @@ __vector_14:
 		out	_SFR_IO_ADDR(TARGET_AUDIO_PORT), r24        ;		1
 #endif
 
+ 		; ---------------------------------------------
+
+#ifdef TARGET_AUDIO_PWM_OC2B
+		sts  OCR2B, r24			;				2
+#endif
+
 		; ---------------------------------------------
 		; Run the noise shift register.
 		; 31 clocks.
