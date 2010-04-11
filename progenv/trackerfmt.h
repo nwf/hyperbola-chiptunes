@@ -12,7 +12,7 @@
 #define PACKSIZE_INSTRPAR	8
 #define PACKSIZE_TRACKNOTE	7
 #define PACKSIZE_TRACKINST	4
-#define PACKSIZE_TRACKCMD	4
+#define PACKSIZE_TRACKCMD	5
 #define PACKSIZE_TRACKPAR	8
 
 #define NR_CHAN         4   /**< Number of channels active in the system */

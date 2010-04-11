@@ -51,7 +51,7 @@ my @OVERPAR = (
     , 'PACKSIZE_RESOURCE' => '13'
     , 'PACKSIZE_SONGTRACK' => '6'
     , 'PACKSIZE_SONGTRANS' => '4'
-    , 'PACKSIZE_TRACKCMD' => '4'
+    , 'PACKSIZE_TRACKCMD' => '5'
     , 'PACKSIZE_TRACKINST' => '4'
     , 'PACKSIZE_TRACKPAR' => '8'
     , 'PACKSIZE_TRACKNOTE' => '7'
@@ -446,7 +446,6 @@ sub pack_song($$$) {
 sub pack_tracks($$$) {
     my ($v, $format, $trackrows) = @_;
 
-    die if $$v{'version'} != 1;   # XXX cmd 1
 
     return [map {
         my $pi = new_pack();
@@ -455,22 +454,37 @@ sub pack_tracks($$$) {
 
             my $hasnote = (defined $note  and $note  != 0);
             my $hasinst = (defined $instr and $instr != 0);
-            my $hascmd  = (defined $c0    and $c0    != 0);
+            my $hascmd0 = (defined $c0    and $c0    != 0);
+            my $hascmd1 = (defined $c1    and $c1    != 0);
+
+            if ($hascmd1 and not $hascmd0) {
+                $hascmd0 = 1;
+                $hascmd1 = 0;
+                $c0 = $c1;
+                $p0 = $p1;
+            }
 
             my $flags = 0;
             $flags += 1 if $hasnote;
             $flags += 2 if $hasinst;
-            $flags += 4 if $hascmd;
+            $flags += 4 if $hascmd0 or $hascmd1;
 
             append_pack($pi, 3, $flags);
+            append_pack($pi, 1, $hascmd1) if $hascmd0;
             append_pack($pi, $$format{'PACKSIZE_TRACKNOTE'}, $note)
                 if $hasnote;
             append_pack($pi, $$format{'PACKSIZE_TRACKINST'}, $instr)
                 if $hasinst;
-            append_pack($pi, $$format{'PACKSIZE_TRACKCMD'}, $c0)
-                if $hascmd;
-            append_pack($pi, $$format{'PACKSIZE_TRACKPAR'}, $p0)
-                if $hascmd;
+            if($hascmd0) {
+                append_pack($pi, $$format{'PACKSIZE_TRACKCMD'}, $c0);
+                append_pack($pi, $$format{'PACKSIZE_TRACKPAR'}, $p0);
+            }
+            if($hascmd1) {
+                die "Unable to encode multiple commands in track line!" if $$v{'version'} < 2;
+                append_pack($pi, $$format{'PACKSIZE_TRACKCMD'}, $c1);
+                append_pack($pi, $$format{'PACKSIZE_TRACKPAR'}, $p1);
+            }
+
         }
         ${finish_pack($pi)}[0];
     } @$trackrows];

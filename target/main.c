@@ -214,20 +214,17 @@ static void playroutine() {
 			if(playsong) {
 				for(ch = 0; ch < NR_CHAN; ch++) {
 					if(channel[ch].tnum) {
-						u8 note, instr, cmd, param;
+						u8 note, instr;
 						u8 fields;
 
 						fields = readchunk(&channel[ch].trackup, 3);
 						note = 0;
 						instr = 0;
-						cmd = 0;
-						param = 0;
+						if((fields & 4) && readchunk(&channel[ch].trackup, 1)) {
+							fields |= 8;
+						}
 						if(fields & 1) note = readchunk(&channel[ch].trackup, PACKSIZE_TRACKNOTE);
 						if(fields & 2) instr = readchunk(&channel[ch].trackup, PACKSIZE_TRACKINST);
-						if(fields & 4) {
-							cmd = readchunk(&channel[ch].trackup, PACKSIZE_TRACKCMD);
-							param = readchunk(&channel[ch].trackup, PACKSIZE_TRACKPAR);
-						}
 						if(note) {
 							channel[ch].tnote = note + channel[ch].transp;
 							if(!instr) instr = channel[ch].lastinstr;
@@ -253,7 +250,17 @@ static void playroutine() {
 							channel[ch].dutyd = 0;
 							channel[ch].vdepth = 0;
 						}
-						if(cmd) runcmd(ch, cmd, param);
+						if(fields & 4) {
+							u8 cmd = readchunk(&channel[ch].trackup, PACKSIZE_TRACKCMD);
+							u8 param = readchunk(&channel[ch].trackup, PACKSIZE_TRACKPAR);
+							runcmd(ch, cmd, param);
+						}
+						if(fields & 8) {
+							u8 cmd = readchunk(&channel[ch].trackup, PACKSIZE_TRACKCMD);
+							u8 param = readchunk(&channel[ch].trackup, PACKSIZE_TRACKPAR);
+							runcmd(ch, cmd, param);
+						}
+
 					}
 				}
 
