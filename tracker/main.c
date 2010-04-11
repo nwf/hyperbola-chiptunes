@@ -79,10 +79,6 @@ int main(int argc, char **argv) {
             fwrite(&res, 1, 1, f);
         }
         fclose(f);
-	} else if(!strcmp("--export", argv[1])) {
-		loadfile(argv[2]);
-        char *exportname = (argc > 2) ? argv[3] : "export" ;
-		export(exportname);
 	} else {
 		if(argc != 2) {
 			err(1, "usage: %s <filename>\n", argv[0]);
