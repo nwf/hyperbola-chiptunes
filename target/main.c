@@ -114,8 +114,17 @@ u16 readchunk(struct unpacker *up, u8 n) {
 }
 
 static void readinstr(u8 num, u8 pos, u8 *dest) {
-	dest[0] = readsongbyte(resources[num] + 2 * pos + 0);
-	dest[1] = readsongbyte(resources[num] + 2 * pos + 1);
+    u16 base = resources[num];
+
+	u8 s0 = readsongbyte(base + pos + pos/2 + 0);
+	u8 s1 = readsongbyte(base + pos + pos/2 + 1);
+    if(pos & 1) {
+        dest[0] = s0 >> 4;
+        dest[1] = s1;
+    } else {
+        dest[0] = s1 & 0xF;
+        dest[1] = s0; 
+    }
 }
 
 static void runcmd(u8 ch, u8 cmd, u8 param) {

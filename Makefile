@@ -25,11 +25,14 @@ progenv/gentimes.c: progenv/gentimes.pl
 progenv/gentimes.h: progenv/gentimes.pl
 	perl $^ --mode=H --fcpu=${CPU_FREQUENCY} --samprate=${SAMPLE_RATE} > $@
 
+#progenv/trackerfmt.ph: progenv/trackerfmt.h
+#	h2ph -d . $^
+
 progenv/gentimes.o: progenv/gentimes.h
 
 .INTERMEDIATE: songs/%.h
-songs/%.s songs/%.h : songs/%.song | tracker/tracker
-	tracker/tracker --export $^ songs/$*
+songs/%.s songs/%.h : songs/%.song | progenv/tracker_optimize.pl
+	perl progenv/tracker_optimize.pl --optimize --packout=songs/$*.s --headout=songs/$*.h --packver=1 < $^
 
     # For use with e.g. "play --rate 16000 -b8 -L -c1 -e un -t raw"
 songs/%.raw : songs/%.song | tracker/tracker

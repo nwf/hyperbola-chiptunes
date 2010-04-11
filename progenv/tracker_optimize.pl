@@ -13,6 +13,7 @@ my $VERBOSE = 0;
 my $TRACKOUTF = undef;
 
 my $PACKOUTF = undef;
+my $HEADOUTF = undef;
 my $PACKVER = 0;
 
 my @IVERPAR = ( undef,
@@ -29,17 +30,34 @@ my @OVERPAR = (
     , 'BASE_TRACK' => '1'
     , 'NR_CHAN' => '4'
     , 'NR_SONGS' => '1'
-    , 'PACKSIZE_TRACKCMD' => '4'
-    , 'PACKSIZE_SONGTRACK' => '6'
     , 'PACKSIZE_INSTRPAR' => '8'
-    , 'PACKSIZE_SONGTRANS' => '4'
-    , 'PACKSIZE_TRACKINST' => '4'
     , 'PACKSIZE_INSTRCMD' => '8'
-    , 'PACKSIZE_TRACKPAR' => '8'
     , 'PACKSIZE_RESOURCE' => '13'
+    , 'PACKSIZE_SONGTRACK' => '6'
+    , 'PACKSIZE_SONGTRANS' => '4'
+    , 'PACKSIZE_TRACKCMD' => '4'
+    , 'PACKSIZE_TRACKINST' => '4'
+    , 'PACKSIZE_TRACKNOTE' => '7'
+    , 'PACKSIZE_TRACKPAR' => '8'
+    , 'TRACKLEN' => '32'
+    , 'INSTRPACKER' => \&pack_inst_linear
+    },
+    { 'BASE_INSTR' => '1'
+    , 'BASE_TRACK' => '1'
+    , 'NR_CHAN' => '4'
+    , 'NR_SONGS' => '1'
+    , 'PACKSIZE_INSTRCMD' => '4'
+    , 'PACKSIZE_INSTRPAR' => '8'
+    , 'PACKSIZE_RESOURCE' => '13'
+    , 'PACKSIZE_SONGTRACK' => '6'
+    , 'PACKSIZE_SONGTRANS' => '4'
+    , 'PACKSIZE_TRACKCMD' => '4'
+    , 'PACKSIZE_TRACKINST' => '4'
+    , 'PACKSIZE_TRACKPAR' => '8'
     , 'PACKSIZE_TRACKNOTE' => '7'
     , 'TRACKLEN' => '32'
-    },
+    , 'INSTRPACKER' => \&pack_inst_alternating
+    }
 );
 
 sub h2a($) {
@@ -351,7 +369,7 @@ sub padinstrs($$$) {
 sub printout($$$$$) {
     my ($FH, $iverpar, $songrows, $trackrows, $instrumentrows) = @_;
 
-    print "musicchip tune\nversion $$iverpar{'version'}\n\n";
+    print $FH "musicchip tune\nversion $$iverpar{'version'}\n\n";
 
     while (my ($six, $w) = each %{$songrows}) {
         printf $FH "songline %02x", $six;
@@ -359,7 +377,7 @@ sub printout($$$$$) {
             my ($trk, $trn) = @$tts;
             printf $FH " %02x %02x", $trk, $trn;
         }
-        print "\n";
+        print $FH "\n";
     }
 
     while (my ($tix, $w) = each %{$trackrows}) {
@@ -458,19 +476,48 @@ sub pack_tracks($$$) {
     } @$trackrows];
 }
 
+sub pack_inst_linear ($$) {
+    my ($inst, $format) = @_;
+
+    my $pi = new_pack();
+    foreach my $v (@$inst) {
+        my ($c, $p) = @$v;
+        append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, $c);
+        append_pack( $pi, $$format{'PACKSIZE_INSTRPAR'}, $p);
+    }
+    append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, 0);
+    ${finish_pack($pi)}[0];
+}
+
+sub pack_inst_alternating ($$) {
+    my ($inst, $format) = @_;
+
+    my $pi = new_pack();
+    my $phase = 0;
+    foreach my $v (@$inst) {
+        my ($c, $p) = @$v;
+        if($phase == 1) {
+            append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, $c);
+            append_pack( $pi, $$format{'PACKSIZE_INSTRPAR'}, $p);
+        } else {
+            append_pack( $pi, $$format{'PACKSIZE_INSTRPAR'}, $p);
+            append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, $c);
+        }
+        $phase = 1 - $phase;
+    }
+    if($phase == 0) {
+        append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, 0);
+    } else {
+        append_pack( $pi, $$format{'PACKSIZE_INSTRPAR'}, 0);
+        append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, 0);
+    }
+    ${finish_pack($pi)}[0];
+}
+
 sub pack_instrs($$$) {
     my ($v, $format, $instrumentrows) = @_;
 
-    return [map {
-        my $pi = new_pack();
-        foreach my $v (@$_) {
-            my ($c, $p) = @$v;
-            append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, $c);
-            append_pack( $pi, $$format{'PACKSIZE_INSTRPAR'}, $p);
-        }
-        append_pack( $pi, $$format{'PACKSIZE_INSTRCMD'}, 0);
-        ${finish_pack($pi)}[0];
-    } @$instrumentrows];
+    return [map {&{$$format{'INSTRPACKER'}}($_, $format)} @$instrumentrows];
 }
 
 sub packout($$$$$$) {
@@ -481,7 +528,7 @@ sub packout($$$$$$) {
     my $pinss = pack_instrs($v, $params, $air);
 
     # resource header
-    my $offset = int(((1+15+$#$atr)*13 + 7)/8);
+    my $offset = int(((1+15+$#$atr)*$$params{'PACKSIZE_RESOURCE'} + 7)/8);
     my $rpack = new_pack();
     append_pack($rpack, $$params{'PACKSIZE_RESOURCE'}, $offset);
 
@@ -538,10 +585,19 @@ sub packout($$$$$$) {
     print $FH "songdata_end:\n";
 }
 
+sub packheadout($$$$$$) {
+    my ($FH, $v, $params, $asr, $atr, $air) = @_;
+
+    printf $FH "#define MAXTRACK 0x%x\n", (scalar $#$atr);
+    printf $FH "#define SONGLEN 0x%x\n", (scalar $#$asr)+1;
+}
+
+
 GetOptions ( 'verbose=i' => \$VERBOSE
            , 'optimize'  => \$OPTIMIZE
            , 'trackout=s' => \$TRACKOUTF
            , 'packout=s' => \$PACKOUTF
+           , 'headout=s' => \$HEADOUTF
            , 'packver=i' => \$PACKVER
            )
 or die "Unable to parse command line: $!";
@@ -552,17 +608,21 @@ my ($iverpar, $sr, $tr, $ir) = parse(*STDIN);
 my ($nsr, $ntr, $nir) = $OPTIMIZE ? remove_unused($sr, $tr, $ir)
                                   : ($sr, $tr, $ir);
 
-my $air = padinstrs($iverpar, $overpar, $ir);
-my $atr = padtracks($iverpar, $overpar, $tr);
-my $asr = padsong  ($iverpar, $overpar, $sr);
+($sr, $tr, $ir) = undef;
+
+my $air = padinstrs($iverpar, $overpar, $nir);
+my $atr = padtracks($iverpar, $overpar, $ntr);
+my $asr = padsong  ($iverpar, $overpar, $nsr);
 
 if (defined $TRACKOUTF) {
     open TRACKOUT,">$TRACKOUTF" or die "Can't open $TRACKOUTF: $!";
-    printout(*TRACKOUT, $iverpar, $sr, $tr, $ir);
+    printout(*TRACKOUT, $iverpar, $nsr, $ntr, $nir);
     close TRACKOUT
 }
 
 if (defined $PACKOUTF) {
+    die "Also need --headout" if not defined $HEADOUTF;
+
     die "Too many input channels"
         if $$iverpar{'channels'} > $$overpar{'NR_CHAN'};
     die "Too many instruments!"
@@ -572,6 +632,10 @@ if (defined $PACKOUTF) {
 
     open PACKOUT,">$PACKOUTF" or die "Can't open $PACKOUTF: $!";
     packout(*PACKOUT, $iverpar, $overpar, $asr, $atr, $air);
-    close PACKOUT
+    close PACKOUT;
+
+    open HEADOUT,">$HEADOUTF" or die "Can't open $HEADOUTF: $!";
+    packheadout(*HEADOUT, $iverpar, $overpar, $asr, $atr, $air);
+    close HEADOUT;
 }
 
