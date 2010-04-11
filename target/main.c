@@ -380,7 +380,7 @@ int main() {
         TCCR2A = (1 << COM2B1) | (1 << WGM21) | (1 << WGM20);
         TCCR2B = (1 << CS20);
         OCR2B = 0;
-        DDRD |= (1 << 3);
+        TARGET_AUDIO_PWM_OC2B_DDR |= (1 << TARGET_AUDIO_PWM_OC2B_PIN);
 #endif
 
 	asm("sei");
