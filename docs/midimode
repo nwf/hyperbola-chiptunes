@@ -1,0 +1,135 @@
+Speaking something like MIDI (TM):
+
+    Disclaimer!  The protocol used here is a subset of the MIDI (TM)
+    standard but we probably can't label the device as MIDI (TM)
+    compliant, since it's their standard and we didn't pay them a dime.
+
+    MIDI (TM) uses a self-synchronizing protocol of seven bit data,
+    using the 8th bit of an octet to denote a status byte and
+    synchronization boundary.  Most messages are fixed width;
+    variable width SEM messages are terminated by the next
+    non-realtime status byte.
+
+    Note that MIDI has "running status" (avoids retransmitting the
+    status byte when it doesn't change between commands), so for the
+    special case of steering the system through one channel, only
+    data bytes need to be sent in some cases.
+
+    Pervasively, we use the "manufacturer ID" of 0x6F which is part of
+    the "other" range.  Yeah yeah, not standard, but it's $200/yr. for
+    a real identifier, which is absurd.  We don't answer 0x7F all-calls
+    except in response to identify.
+
+    We bake into the firmware an intial device ID.  End users' software
+    should make some effort to move device IDs on the local network to
+    a nonoverlapping namespace (see NRPNs below).
+
+Usage of channels:
+
+    Channels 0 to 4 correspond to the on-chip oscillators.
+
+    Despite that MIDI allows multiple notes to be playing on
+    a given channel at a time, we support only one note down at once,
+    which will be that given by the most recent Note On command.
+    That is, the device behaves something like a Mode 4 (omni off,
+    monophonic) device but perhaps without all the features.
+
+    Each oscillator can be in one of the following states:
+        "on-song"   -- following the selected song in real-time (default)
+        "on-track"  -- following a given track
+        "off-track" -- following a given instrument using given notes
+
+Commands understood at any time:
+
+8x  Note on chan x (note as is, velocity == 1/2 volume)
+    (That is, set oscillator active with tnote and volume as given)
+    Note that this is probably only useful when the song is off-track.
+
+Cx  Set instrument for channel.  See bank select below.
+
+XXX Bx control change parameters may be useful to map some of our
+XXX commands onto the standard vocabulary, hacks like NRPN
+XXX not withstanding.
+
+Bx 006. nn  Set NRPN coarse value to nn.
+Bx 032. 00  Set "bank" for instruments to be the song indirected table.
+Bx 032. 01  Set "bank" for instruments to be the first 127 instruments.
+Bx 032. 02  Set "bank" for instruments to be the next 127 instruments.
+Bx 038. nn  Set NRPN fine value to nn.
+Bx 098. nn  Set the NRPN fine index to nn.
+Bx 120. __  Go off-track.  Silences the channel immediately.
+Bx 122. off go on-track on next track transition.
+            target track specified by NRPN; see below.
+Bx 122. on  go on-song on next track transition.
+
+
+ {System common group}
+F0  Enter System Exclusive Mode (see below)
+F3  Song select (1 byte payload)
+        Specifies the song index for the next Start (see below)
+F7  Exit System Exclusive Mode
+
+ {Realtime group, no payloads}
+F8  System clock byte
+FA  Start
+        Takes all channels on-song immediately, resets track clock.
+FB  Continue
+FC  Pause
+FE  Active sense
+FF  System reset
+
+Commands understood when a channel is off-track:
+
+Non-Registered Parameter Numbers:
+
+    MIDI provides a 14-bit address space of 14-bit values called
+    "Non-Registered Parameters".  Since these bits are entirely
+    free-range, we use them to convey data outside the protocol down
+    to the device.
+
+    We so far use only the fine NRPN space (leaving the top 7 bits
+    as 0).
+
+    NRPN 0x00 : Assigning value of the form 0cccccpppppppp invokes
+                command c with parameter p on selected channel.  Note
+                that we require the trasmission order of fine and then
+                coarse.  If fine is ommitted, the parameter's bottom
+                seven bits are considered to be 0; the interpretation
+                happens on the setting of the coarse half.
+
+    NRPN 0x10 : when set, specifies the target track for on-track
+                transitions.  This value is consulted at the track
+                transition for as long as the channel remains on-track,
+                providing ample opportunity to drive on-track channels
+                during playback.
+
+    NRPN 0x70 : Set the device ID (fine value only).  This number is
+                stored in EEPROM or FLASH and so this command should
+                be used only rarely!
+
+    NRPN 0x71 : Set the base channel to use, rather than 0.  Note that
+                for parsing simplicity, we only allow this to be 0, 4,
+                8, or 12.  Still, that should be enough to get out of
+                the way of other devices.
+
+System Exclusive Mode:
+
+    SEM data are prefixed with the following header:
+        0xF0 (enter SYSEX), SYSEX ID, Device ID, Sub-id 1, Sub-id 2
+    As mentioned above, we use a non-standard manufacturer ID (SYSEX ID);
+    our device ID is as set by NRPN above.  SYSEX ID 7E and 7F are
+    reserved for standardized command vocabularies.
+
+    We define our own SYSEX command, namely PUSH IHEX, with command
+    sub-id1 and sub-id2 both 0x00.  Upon receipt of this command, the
+    device stops playing and enters a primitive bootloader, which reads
+    IHEX lines off the MIDI bus (ignoring all realtime messages received
+    and bailing on receipt of a non-RT status byte).  IHEX has the
+    convenient property that all of its data is 7-bit clean.
+
+    XXX Do we also want to support the more standard file transfer?
+
+    Identify appears to be defined already in 7E/06 01 and 7E/06 02.
+    We return with "device family code" and "device family number code"
+    of all zeros for the moment; our software revision may eventually
+    become meaningful.
