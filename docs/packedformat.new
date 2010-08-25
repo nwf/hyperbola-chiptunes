@@ -56,7 +56,7 @@ instrument:
     ccccpppppppp        = command c, parameter p
     (for each cmd)
     
-    Note tht the reduction to 12 bits (from 16) doesn't destroy
+    Note that the reduction to 12 bits (from 16) doesn't destroy
     seekability, since we know that even commands begin on a byte
     boundary and odd begin on a byte-and-a-nibble boundary.
 
@@ -70,10 +70,6 @@ instrument:
     (In the demo song, 273 bytes are devoted to instruments; we should
     expect to free up a little under 69 bytes then, or a little over four
     bytes per instrument on average.)
-
-    XXX Despite the gains, this restricts us from growing the command
-    vocabulary available to instruments.  That might be OK, as there
-    seem to be few we actually want, but
 
 track:
     000                                       = blank line

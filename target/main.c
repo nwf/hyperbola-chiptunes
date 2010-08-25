@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -19,10 +21,12 @@ u8 trackwait;
 u8 trackpos;
 u8 playsong;
 u8 songpos;
+u8 songlen;
 
 u32 noiseseed = 1;
 
 u8 light[2];
+
 
 /* The layout of this structure is known to assembler */
 volatile struct oscillator {
@@ -34,19 +38,23 @@ volatile struct oscillator {
 } osc[NR_CHAN];
 
 struct unpacker {
-	u16	nextbyte;
+	u8*	nextbyte;
 	u8	buffer;
 	u8	bits;
+		// XXX RAMPACKS
+		// 0x80 : PGM(1) vs RAM(0)
+		// 0x07 : bits remaining in buffer
 };
 
 struct channel {
 	struct unpacker		trackup;
+	u8			flags;
 	u8			tnum;
 	s8			transp;
 	u8			tnote;
-	u8			lastinstr;
-	u8			inum;
-	u16			iptr;
+	u8*			ilast;
+	u8*			iptr;
+	u8			ioff;
 	u8			iwait;
 	u8			inote;
 	s8			bendd;
@@ -60,12 +68,11 @@ struct channel {
 	u16			slur;
 } channel[NR_CHAN];
 
-u16 resources[16 + MAXTRACK];
-
 struct unpacker songup;
 
+extern u8* itab[] __ATTR_PROGMEM__;
+extern u8* ttab[] __ATTR_PROGMEM__;
 extern u8 songdata[] __ATTR_PROGMEM__;
-#define readsongbyte(x) pgm_read_byte_near(&songdata[x]);
 
 /* This is the AVR-LIBC standard dance for disabling the WDT */
     static uint8_t mcusr_mirror __attribute__ ((section (".noinit")));
@@ -80,16 +87,29 @@ extern u8 songdata[] __ATTR_PROGMEM__;
       wdt_disable();
     }
 
-static void initup(struct unpacker *up, u16 offset) {
-	up->nextbyte = offset;
+static void initup(struct unpacker *up, u8 *ptr) {
+	up->nextbyte = ptr;
 	up->bits = 0;
 }
 
 static u8 readbit(struct unpacker *up) {
 	u8 val;
 
+#if 0
+	/* XXX RAMPACKS If we have RAM packs, use this instead */
+	if(!(up->bits & 0x7)) {
+		up->buffer =
+			(up->bits & 0x80)
+				? pgm_read_byte_near(up->nextbyte)
+				: *up->nextbyte;
+		up->nextbyte++;
+		up->bits |= 7;
+	} else {
+		up->bits--;
+	}
+#endif
 	if(!up->bits) {
-		up->buffer = readsongbyte(up->nextbyte++);
+		up->buffer = pgm_read_byte_near(up->nextbyte++);
 		up->bits = 8;
 	}
 
@@ -100,7 +120,7 @@ static u8 readbit(struct unpacker *up) {
 	return val;
 }
 
-u16 readchunk(struct unpacker *up, u8 n) {
+static u16 readchunk(struct unpacker *up, u8 n) {
 	u16 val = 0;
 	u8 i;
 
@@ -113,24 +133,22 @@ u16 readchunk(struct unpacker *up, u8 n) {
 	return val;
 }
 
-static void readinstr(u8 num, u8 pos, u8 *dest) {
-    u16 base = resources[num];
-
-	u8 s0 = readsongbyte(base + pos + pos/2 + 0);
-	u8 s1 = readsongbyte(base + pos + pos/2 + 1);
-    if(pos & 1) {
-        dest[0] = s0 >> 4;
-        dest[1] = s1;
-    } else {
-        dest[0] = s1 & 0xF;
-        dest[1] = s0; 
-    }
+static void readinstr_pgm(u8* base, u8 pos, u8 *dest) {
+	u8 s0 = pgm_read_byte_near(base + pos + pos/2 + 0);
+	u8 s1 = pgm_read_byte_near(base + pos + pos/2 + 1);
+	if(pos & 1) {
+		dest[0] = s0 >> 4;
+		dest[1] = s1;
+	} else {
+		dest[0] = s1 & 0xF;
+		dest[1] = s0; 
+	}
 }
 
 static void runcmd(u8 ch, u8 cmd, u8 param) {
 	switch(cmd) {
 		case CMD_ISTOP:
-			channel[ch].inum = 0;
+			channel[ch].iptr = NULL;
 			break;
 		case CMD_DUTY:
 			osc[ch].duty = param << 8;
@@ -142,7 +160,7 @@ static void runcmd(u8 ch, u8 cmd, u8 param) {
 			channel[ch].inertia = param << 1;
 			break;
 		case CMD_IJUMP:
-			channel[ch].iptr = param;
+			channel[ch].ioff = param;
 			break;
 		case CMD_BENDD:
 			channel[ch].bendd = param;
@@ -175,7 +193,7 @@ static void runcmd(u8 ch, u8 cmd, u8 param) {
 	}
 }
 
-static void playroutine() {
+static void playtrack() {
 	u8 ch;
 
 	if(playsong) {
@@ -186,24 +204,31 @@ static void playroutine() {
 
 			if(!trackpos) {
 				if(playsong) {
-					if(songpos >= SONGLEN) {
+					if(songpos >= songlen) {
 						playsong = 0;
+						light[1] = 0xFF;
 					} else {
 						for(ch = 0; ch < NR_CHAN; ch++) {
 							u8 gottransp;
 							u8 transp;
+							u8 ntnum;
 
 							gottransp = readchunk(&songup, 1);
-							channel[ch].tnum = readchunk(&songup, PACKSIZE_SONGTRACK);
+							ntnum = readchunk(&songup, PACKSIZE_SONGTRACK);
 							if(gottransp) {
 								transp = readchunk(&songup, PACKSIZE_SONGTRANS);
 								if(transp & 0x8) transp |= 0xf0;
 							} else {
 								transp = 0;
 							}
+							channel[ch].tnum = ntnum;
 							channel[ch].transp = (s8) transp;
+
 							if(channel[ch].tnum) {
-								initup(&channel[ch].trackup, resources[16 + channel[ch].tnum - 1]);
+								initup(&channel[ch].trackup,
+									(u8*) pgm_read_word_near(
+										&ttab[channel[ch].tnum-1]));
+								// XXX TINDR
 							}
 						}
 						songpos++;
@@ -227,7 +252,10 @@ static void playroutine() {
 						if(fields & 2) instr = readchunk(&channel[ch].trackup, PACKSIZE_TRACKINST);
 						if(note) {
 							channel[ch].tnote = note + channel[ch].transp;
-							if(!instr) instr = channel[ch].lastinstr;
+							if(!instr) {
+								channel[ch].iptr = channel[ch].ilast;
+								goto instr_common;
+							}
 						}
 						if(instr) {
 							if(instr == 2) light[1] = 5;
@@ -240,9 +268,12 @@ static void playroutine() {
 							if(instr == 7) {
 								light[0] = light[1] = 30;
 							}
-							channel[ch].lastinstr = instr;
-							channel[ch].inum = instr;
-							channel[ch].iptr = 0;
+							channel[ch].ilast
+								= channel[ch].iptr
+								= (u8*) pgm_read_word_near(&itab[instr-1]);
+								// XXX IINDR
+instr_common:
+							channel[ch].ioff = 0;
 							channel[ch].iwait = 0;
 							channel[ch].bend = 0;
 							channel[ch].bendd = 0;
@@ -269,17 +300,22 @@ static void playroutine() {
 			}
 		}
 	}
+}
+
+static void updateinstruments() {
+	u8 ch;
 
 	for(ch = 0; ch < NR_CHAN; ch++) {
 		s16 vol;
 		u16 duty;
 		u16 slur;
 
-		while(channel[ch].inum && !channel[ch].iwait) {
+		while(channel[ch].iptr && !channel[ch].iwait) {
 			u8 il[2];
 
-			readinstr(channel[ch].inum, channel[ch].iptr, il);
-			channel[ch].iptr++;
+			// XXX RAMPACKS
+			readinstr_pgm(channel[ch].iptr, channel[ch].ioff, il);
+			channel[ch].ioff++;
 
 			runcmd(ch, il[0], il[1]);
 		}
@@ -336,16 +372,26 @@ static void playroutine() {
 }
 
 void initresources() {
-	u8 i;
-	struct unpacker up;
-
-	initup(&up, 0);
-	for(i = 0; i < 16 + MAXTRACK; i++) {
-		resources[i] = readchunk(&up, PACKSIZE_RESOURCE);
-	}
-
-	initup(&songup, resources[0]);
+	songlen = pgm_read_byte_near(&songdata[0]);
+	initup(&songup, &songdata[1]);
 }
+
+#if 0
+XXX MULTISONG TINDR IINDR
+void initsongtabs(u8 idx) {
+	int i;
+	u16 songbase = pgm_read_byte_near(&songaddrs[idx]);
+	u8 ni = pgm_read_byte_near(songbase++) & 0xF;
+	for (i = 0; i < ni; i++) {
+		iindr[i] = pgm_read_byte_near(songbase++);
+	}
+	u8 nt = pgm_read_byte_near(songbase++) & 0x3F;
+	for (i = 0; i < nt; i++) {
+		tindr[i] = pgm_read_byte_near(songbase++);
+	}
+	initup(&songup, songbase);
+}
+#endif
 
 void initsong() {
 	timetoplay = 0;
@@ -355,24 +401,59 @@ void initsong() {
 	songpos = 0;
 
 	osc[0].volume = 0;
-	channel[0].inum = 0;
+	channel[0].iptr = NULL;
 	osc[1].volume = 0;
-	channel[1].inum = 0;
+	channel[1].iptr = NULL;
 	osc[2].volume = 0;
-	channel[2].inum = 0;
+	channel[2].iptr = NULL;
 	osc[3].volume = 0;
-	channel[3].inum = 0;
+	channel[3].iptr = NULL;
 }
 
+static void soundirqon() {
+	TCCR0A = 0x02;
+	TCCR0B = T0DIV & 0x7;
+	OCR0A = T0MAX;
+	TIMSK0 |= (1 << OCIE0A);
+}
+
+static void soundirqoff() {
+	TIMSK0 &= ~(1 << OCIE0A);
+}
+
+static void hwouton() {
+#ifdef TARGET_AUDIO_PORT
+	TARGET_AUDIO_DDR = 0xff;
+	TARGET_AUDIO_PORT = 0;
+#endif
+
+#ifdef TARGET_AUDIO_PWM_OC2B
+		TCCR2A = (1 << COM2B1) | (1 << WGM21) | (1 << WGM20);
+		TCCR2B = (1 << CS20);
+		OCR2B = 0;
+		TARGET_AUDIO_PWM_OC2B_DDR |= (1 << TARGET_AUDIO_PWM_OC2B_PIN);
+#endif
+}
+
+static void hwoutoff() {
+#ifdef TARGET_AUDIO_PORT
+	TARGET_AUDIO_DDR = 0x00;
+#endif
+
+#ifdef TARGET_AUDIO_PWM_OC2B
+		TARGET_AUDIO_PWM_OC2B_DDR &= ~(1 << TARGET_AUDIO_PWM_OC2B_PIN);
+#endif
+}
+
+int main() __attribute__((naked,noreturn));
 int main() {
 	asm("cli");
 	CLKPR = 0x80;
 	CLKPR = 0x80;
 
+#ifdef TARGET_LIGHT_PORT
 	TARGET_LIGHT_DDR = TARGET_LIGHT_ZERO | TARGET_LIGHT_ONE;
-	TARGET_AUDIO_DDR = 0xff;
-
-	TARGET_AUDIO_PORT = 0;
+#endif
 
 	initsong();
 	initresources();
@@ -383,19 +464,16 @@ int main() {
 
 	TIMSK0 = 0x02;
 
-#ifdef TARGET_AUDIO_PWM_OC2B
-        TCCR2A = (1 << COM2B1) | (1 << WGM21) | (1 << WGM20);
-        TCCR2B = (1 << CS20);
-        OCR2B = 0;
-        TARGET_AUDIO_PWM_OC2B_DDR |= (1 << TARGET_AUDIO_PWM_OC2B_PIN);
-#endif
+	soundirqon();
+	hwouton();
 
 	asm("sei");
 	for(;;) {
 		while(!timetoplay);
 
 		timetoplay--;
-		playroutine();
+		playtrack();
+		updateinstruments();
 	}
 }
 

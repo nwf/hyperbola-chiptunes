@@ -599,6 +599,61 @@ sub packout($$$$$$) {
     print $FH "songdata_end:\n";
 }
 
+sub packout_new($$$$$$) {
+    my ($FH, $v, $params, $asr, $atr, $air) = @_;
+
+    my $psong = pack_song($v, $params, $asr);
+    my $ptrks = pack_tracks($v, $params, $atr);
+    my $pinss = pack_instrs($v, $params, $air);
+
+    # header
+    print $FH ".section .rosdata,\"a\"\n";
+
+    # song
+    print $FH "\t.global\tsongdata\n\nsongdata:\n";
+    printf $FH "\t.byte\t0x%02x\n", (scalar $#$asr)+1;
+    print $FH map { sprintf "\t.byte\t0x%02x\n", ord $_ }
+        split //, pack 'B*', $psong, "\n";
+    print $FH "songdata_end:\n";
+
+    # ptrtab for instruments
+    print $FH "\n.global\titab\n\nitab:\n";
+    for my $iix ($$params{'BASE_INSTR'}..$#$pinss) {
+        printf $FH "\t.word\titab_$iix\n";
+    }
+#    # lentab for instruments
+#    print $FH "\n.global\tilentab\n\nilentab:\n";
+#    printf $FH "\t.byte\t0x%02x\n", $#$pinss - $$params{'BASE_INSTR'} + 1;
+#    for my $iix ($$params{'BASE_INSTR'}..$#$pinss) {
+#        printf $FH "\t.byte\t0x%02x\n", (length $$pinss[$iix])/8;
+#    }
+    for my $iix ($$params{'BASE_INSTR'}..$#$pinss) {
+#        print $FH "\nilentab_$iix:\n";
+        print $FH "\nitab_$iix:\n";
+        print $FH map { sprintf "\t.byte\t0x%02x\n", ord $_ }
+            split //, pack 'B*', $$pinss[$iix], "\n";
+    }
+
+    # ptrtab for instruments
+    print $FH "\n.global\tttab\n\nttab:\n";
+    for my $iix ($$params{'BASE_TRACK'}..$#$ptrks) {
+        printf $FH "\t.word\tttab_$iix\n";
+    }
+#    # lentab for tracks
+#    print $FH "\n.global\ttlentab\n\ntlentab:\n";
+#    printf $FH "\t.byte\t0x%02x\n", $#$ptrks + 1;
+#    for my $iix ($$params{'BASE_TRACK'}..$#$ptrks) {
+#        printf $FH "\t.byte\t0x%02x\n", (length $$ptrks[$iix])/8;
+#    }
+    for my $iix ($$params{'BASE_TRACK'}..$#$ptrks) {
+#        print $FH "\ntlentab_$iix:\n";
+        print $FH "\nttab_$iix:\n";
+        print $FH map { sprintf "\t.byte\t0x%02x\n", ord $_ }
+            split //, pack 'B*', $$ptrks[$iix], "\n";
+    }
+}
+
+
 sub packheadout($$$$$$) {
     my ($FH, $v, $params, $asr, $atr, $air) = @_;
 
@@ -635,7 +690,8 @@ if (defined $TRACKOUTF) {
 }
 
 if (defined $PACKOUTF) {
-    die "Also need --headout" if not defined $HEADOUTF;
+    die "Also need --headout"
+        if not defined $HEADOUTF and $PACKVER < 1;
 
     die "Too many input channels"
         if $$iverpar{'channels'} > $$overpar{'NR_CHAN'};
@@ -644,12 +700,18 @@ if (defined $PACKOUTF) {
     die "Too many tracks!"
         if $#$atr > 2**$$overpar{'PACKSIZE_SONGTRACK'}-1;
 
-    open PACKOUT,">$PACKOUTF" or die "Can't open $PACKOUTF: $!";
-    packout(*PACKOUT, $iverpar, $overpar, $asr, $atr, $air);
-    close PACKOUT;
+    if ($PACKVER < 1) {
+        open PACKOUT,">$PACKOUTF" or die "Can't open $PACKOUTF: $!";
+        packout(*PACKOUT, $iverpar, $overpar, $asr, $atr, $air);
+        close PACKOUT;
 
-    open HEADOUT,">$HEADOUTF" or die "Can't open $HEADOUTF: $!";
-    packheadout(*HEADOUT, $iverpar, $overpar, $asr, $atr, $air);
-    close HEADOUT;
+        open HEADOUT,">$HEADOUTF" or die "Can't open $HEADOUTF: $!";
+        packheadout(*HEADOUT, $iverpar, $overpar, $asr, $atr, $air);
+        close HEADOUT;
+    } else {
+        open PACKOUT,">$PACKOUTF" or die "Can't open $PACKOUTF: $!";
+        packout_new(*PACKOUT, $iverpar, $overpar, $asr, $atr, $air);
+        close PACKOUT;
+    }
 }
 
