@@ -337,11 +337,11 @@ sub padtracks($$$) {
     my $atr = hh2aa($tr);
 
     foreach my $ix (0..$#$atr) {
-        foreach my $iix (0..$$params{'TRACKLEN'}-1) {
-            if (not defined $$atr[$ix][$iix]) {
-                print STDERR "Filling in track gap at $ix:$iix\n"
+        foreach my $tix (0..$$params{'TRACKLEN'}-1) {
+            if (not defined $$atr[$ix][$tix]) {
+                print STDERR "Filling in track gap at $ix:$tix\n"
                     if $VERBOSE > 1;
-                $$atr[$ix][$iix] = $$v{'emptytrack'};
+                $$atr[$ix][$tix] = $$v{'emptytrack'};
             } 
         }
         die "Overlong track $ix\n" if $#{$$atr[$ix]} > $$params{'TRACKLEN'}-1;
@@ -349,6 +349,34 @@ sub padtracks($$$) {
 
     return $atr;
 }
+
+sub padtracks_npf($$$) {
+    my ($v, $params, $tr) = @_;
+    my $atr = hh2aa($tr);
+
+    foreach my $ix (0..$#$atr) {
+        my $lastcmd = 0;
+        foreach my $tix (reverse 0..$$params{'TRACKLEN'}-1) {
+            if ($lastcmd and not defined $$atr[$ix][$tix]) {
+                print STDERR "Filling in track gap at $ix:$tix\n"
+                    if $VERBOSE > 1;
+                $$atr[$ix][$tix] = $$v{'emptytrack'};
+            } elsif (    not $lastcmd
+                     and defined $$atr[$ix][$tix]) {
+                $lastcmd = 1;
+                print STDERR "End of track found at $ix:$tix\n"
+                    if $VERBOSE > 1;
+                if($tix < $$params{'TRACKLEN'}-1) {
+                    $$atr[$ix][$tix+1] = [0, 0, "0 but true", 0, 0, 0];
+                }
+            }
+        }
+        die "Overlong track $ix\n" if $#{$$atr[$ix]} > $$params{'TRACKLEN'}-1;
+    }
+
+    return $atr;
+}
+
 
 sub padinstrs($$$) {
     my ($v, $params, $ir) = @_;
@@ -454,8 +482,8 @@ sub pack_tracks($$$) {
 
             my $hasnote = (defined $note  and $note  != 0);
             my $hasinst = (defined $instr and $instr != 0);
-            my $hascmd0 = (defined $c0    and $c0    != 0);
-            my $hascmd1 = (defined $c1    and $c1    != 0);
+            my $hascmd0 = (defined $c0    and $c0        );
+            my $hascmd1 = (defined $c1    and $c1        );
 
             if ($hascmd1 and not $hascmd0) {
                 $hascmd0 = 1;
@@ -680,7 +708,9 @@ my ($nsr, $ntr, $nir) = $OPTIMIZE ? remove_unused($sr, $tr, $ir)
 ($sr, $tr, $ir) = undef;
 
 my $air = padinstrs($iverpar, $overpar, $nir);
-my $atr = padtracks($iverpar, $overpar, $ntr);
+my $atr = ($PACKVER > 0)
+    ? padtracks_npf($iverpar, $overpar, $ntr)
+    : padtracks($iverpar, $overpar, $ntr);
 my $asr = padsong  ($iverpar, $overpar, $nsr);
 
 if (defined $TRACKOUTF) {

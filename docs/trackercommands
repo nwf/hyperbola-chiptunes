@@ -1,6 +1,6 @@
 ENC	CHAR	COMMAND
 ---	----	-------
-0	'0'(30)	n/a  INSTRUMENT END (not valid in channel ctx) (param ignored)
+0	'0'(30)	n/a  TRACK/INSTRUMENT END (param ignored)
 1 	'd'(64)	OSC  DUTY (param = top 8 bits, bottom 8 set to 0)
 2	'f'(66)	CHAN VOLUME DERIVATIVE (param)
 3	'i'(69)	CHAN INTERTIA (param << 1)

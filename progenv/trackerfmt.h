@@ -25,7 +25,7 @@
 #define WF_NOI          0x03    /**< Uniform noise */
 
 /* Commands.  4 bits. */
-    /** End of instrument; not valid in track ctx. */
+    /** End of instrument or track */
 #define CMD_ISTOP       0x0
     /* RESERVED 0x00 (in track context) */
     /** Set oscillator duty top 8 bits; zero bottom bits */

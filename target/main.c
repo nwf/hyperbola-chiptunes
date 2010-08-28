@@ -46,6 +46,18 @@ struct unpacker {
 		// 0x07 : bits remaining in buffer
 };
 
+enum {
+		CF_TRACK_FINISHED   = 0x01,
+		CF_OFFSONG_STOP  = 0x02,
+				// if tnum = 0, song is also off-track
+		CF_OFFSONG_LOOP  = 0x04,
+	// 0x08
+		// 0x10
+		// 0x20
+		// 0x40
+		// 0x80
+};
+
 struct channel {
 	struct unpacker		trackup;
 	u8			flags;
@@ -238,7 +250,8 @@ static void playtrack() {
 
 			if(playsong) {
 				for(ch = 0; ch < NR_CHAN; ch++) {
-					if(channel[ch].tnum) {
+					if(channel[ch].tnum
+					&& !(channel[ch].flags & CF_TRACK_FINISHED)) {
 						u8 note, instr;
 						u8 fields;
 
@@ -284,12 +297,18 @@ instr_common:
 						if(fields & 4) {
 							u8 cmd = readchunk(&channel[ch].trackup, PACKSIZE_TRACKCMD);
 							u8 param = readchunk(&channel[ch].trackup, PACKSIZE_TRACKPAR);
-							runcmd(ch, cmd, param);
+							if(cmd == CMD_ISTOP)
+								channel[ch].flags |= CF_TRACK_FINISHED;
+							else
+								runcmd(ch, cmd, param);
 						}
 						if(fields & 8) {
 							u8 cmd = readchunk(&channel[ch].trackup, PACKSIZE_TRACKCMD);
 							u8 param = readchunk(&channel[ch].trackup, PACKSIZE_TRACKPAR);
-							runcmd(ch, cmd, param);
+							if(cmd == CMD_ISTOP)
+								channel[ch].flags |= CF_TRACK_FINISHED;
+							else
+								runcmd(ch, cmd, param);
 						}
 
 					}
