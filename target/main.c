@@ -202,6 +202,14 @@ static void runcmd(u8 ch, u8 cmd, u8 param) {
 			channel[ch].vdepth = param >> 4;
 			channel[ch].vrate = param & 15;
 			break;
+		case CMD_LIGHTSET:
+			if(param & 0x80) {
+				light[0] = param & 0x1F;
+			}
+			if(param & 0x40) {
+				light[1] = param & 0x1F;
+			}
+			break;
 	}
 }
 
@@ -218,7 +226,6 @@ static void playtrack() {
 				if(playsong) {
 					if(songpos >= songlen) {
 						playsong = 0;
-						light[1] = 0xFF;
 					} else {
 						for(ch = 0; ch < NR_CHAN; ch++) {
 							u8 gottransp;
@@ -271,6 +278,7 @@ static void playtrack() {
 							}
 						}
 						if(instr) {
+#if 0
 							if(instr == 2) light[1] = 5;
 							if(instr == 1) {
 								light[0] = 5;
@@ -281,6 +289,7 @@ static void playtrack() {
 							if(instr == 7) {
 								light[0] = light[1] = 30;
 							}
+#endif
 							channel[ch].ilast
 								= channel[ch].iptr
 								= (u8*) pgm_read_word_near(&itab[instr-1]);

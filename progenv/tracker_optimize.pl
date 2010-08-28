@@ -57,6 +57,7 @@ my @OVERPAR = (
     , 'PACKSIZE_TRACKPAR' => '8'
     , 'PACKSIZE_TRACKNOTE' => '7'
     , 'TRACKLEN' => '32'
+    , 'CMD_LIGHTSET' => '0x1F'
     , 'INSTRPACKER' => \&pack_inst_alternating
     , 'TRACKPACKER' => \&pack_track_npf
     }
@@ -319,6 +320,43 @@ sub remove_unused ($$$) {
 
     return (\%newsongrows, \%newtrackrows, \%newinstrumentrows);
 }
+
+sub add_some_lighting($$$) {
+    my ($v, $format, $atr) = @_;
+
+    foreach my $ix (0..$#$atr) {
+        foreach my $tix (0..$#{$$atr[$ix]}) {
+            my ($note, $instr, $c0, $p0, $c1, $p1) = @{$$atr[$ix][$tix]};
+
+            my @lights = ( );
+            my $time;
+
+            next if not defined $instr or $instr == 0;
+
+            if ($instr == 1) { $time = 5; $lights[0] = 1; }
+            if ($instr == 5) { $time = 5; $lights[1] = 1; }
+            if ($instr == 10) { $time = 30; $lights[0] = $lights[1] = 1; }
+
+            next if not defined $time;
+
+            my $hascmd0 = (defined $c0    and $c0        );
+            my $hascmd1 = (defined $c1    and $c1        );
+
+            my $cix;
+            $cix = 1 if not $hascmd1;
+            $cix = 0 if not $hascmd0;
+            next if not defined $cix;
+
+            my $lval = $time & 0x1F;
+            $lval += 0x80 if defined $lights[0];
+            $lval += 0x40 if defined $lights[1];
+
+            $$atr[$ix][$tix][2+2*$cix] = $format{'CMD_LIGHTSET'};
+            $$atr[$ix][$tix][2+2*$cix+1] = $lval;
+        }
+    }
+}
+
 
 sub padsong($$$) {
     my ($v, $params, $sr) = @_;
@@ -753,6 +791,8 @@ my $atr = ($PACKVER > 0)
     ? padtracks_npf($iverpar, $overpar, $ntr)
     : padtracks($iverpar, $overpar, $ntr);
 my $asr = padsong  ($iverpar, $overpar, $nsr);
+
+add_some_lighting($iverpar, $overpar, $atr) if defined $overpar{'CMD_LIGHTSET'};
 
 if (defined $TRACKOUTF) {
     open TRACKOUT,">$TRACKOUTF" or die "Can't open $TRACKOUTF: $!";

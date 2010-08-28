@@ -53,6 +53,10 @@
     /** Set channel vibrato depth and rate */
 #define CMD_VIBRATO     0xA
 
+/* Commands.  5 bits (track context only) */
+    /** Lighting effects; lr_ttttt */
+#define CMD_LIGHTSET    0x1F
+
     /* RESERVED 0x0D */
     /* RESERVED 0x0E */
     /* RESERVED 0x0F */
