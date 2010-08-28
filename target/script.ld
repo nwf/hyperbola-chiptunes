@@ -3,19 +3,13 @@ OUTPUT_FORMAT("elf32-avr","elf32-avr","elf32-avr")
 OUTPUT_ARCH(avr:4)
 MEMORY
 {
-  text        (rx) : ORIGIN = 0       , LENGTH = 16K
-  rosdata     (rx) : ORIGIN = 0x2000  , LENGTH = 16K
+  text        (rx) : ORIGIN = 0       , LENGTH = 8K
+  rosdata     (rx) : ORIGIN = 0x2000  , LENGTH = 8K
   data      (rw!x) : ORIGIN = 0x800100, LENGTH = 0xfe00
   eeprom    (rw!x) : ORIGIN = 0x810000, LENGTH = 64K
   fuse      (rw!x) : ORIGIN = 0x820000, LENGTH = 1K
   lock      (rw!x) : ORIGIN = 0x830000, LENGTH = 1K
   signature (rw!x) : ORIGIN = 0x840000, LENGTH = 1K
-}
-PHDRS
-{
-  headers PT_PHDR FILEHDR PHDRS ;
-  text PT_LOAD ;
-  data PT_LOAD ;
 }
 SECTIONS
 {
@@ -151,7 +145,7 @@ SECTIONS
     *(.fini0)  /* Infinite loop after program termination.  */
     KEEP (*(.fini0))
      _etext = . ;
-  }  >text :text
+  }  > text
   .rosdata :
   {
 	PROVIDE (__ros_start = .) ;
@@ -160,8 +154,8 @@ SECTIONS
     *(.rosdata.*)
     KEEP (*(.rosdata.*))
 	PROVIDE (__ros_end = .) ;
-  }  >rosdata :text
-  .data :
+  }  > rosdata
+  .data         : AT (ADDR (.text) + SIZEOF (.text))
   {
      PROVIDE (__data_start = .) ;
     *(.data)
@@ -172,7 +166,7 @@ SECTIONS
     . = ALIGN(2);
      _edata = . ;
      PROVIDE (__data_end = .) ;
-  }  >data :data
+  }  > data
   .bss   : AT (ADDR (.bss))
   {
      PROVIDE (__bss_start = .) ;
@@ -180,7 +174,7 @@ SECTIONS
     *(.bss*)
     *(COMMON)
      PROVIDE (__bss_end = .) ;
-  }  >data :data
+  }  > data
    __data_load_start = LOADADDR(.data);
    __data_load_end = __data_load_start + SIZEOF(.data);
   /* Global data not cleared after reset.  */
@@ -191,27 +185,27 @@ SECTIONS
      PROVIDE (__noinit_end = .) ;
      _end = . ;
      PROVIDE (__heap_start = .) ;
-  }  >data :data
+  }  > data
   .eeprom  :
   {
     *(.eeprom*)
      __eeprom_end = . ;
-  }  >eeprom
+  }  > eeprom
   .fuse  :
   {
     KEEP(*(.fuse))
     KEEP(*(.lfuse))
     KEEP(*(.hfuse))
     KEEP(*(.efuse))
-  }  >fuse
+  }  > fuse
   .lock  :
   {
     KEEP(*(.lock*))
-  }  >lock
+  }  > lock
   .signature  :
   {
     KEEP(*(.signature*))
-  }  >signature
+  }  > signature
   /* Stabs debugging sections.  */
   .stab 0 : { *(.stab) }
   .stabstr 0 : { *(.stabstr) }

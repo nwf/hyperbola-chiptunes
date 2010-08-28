@@ -1,5 +1,5 @@
-CPU_CPP_NAME=__AVR_ATmega328__
-CPU_CC_NAME=atmega328p
+CPU_CPP_NAME=__AVR_ATmega168__
+CPU_CC_NAME=atmega168
 CPU_LD_NAME=avr4
 	# Be sure to also adjust the values in target/script.ld
 	
