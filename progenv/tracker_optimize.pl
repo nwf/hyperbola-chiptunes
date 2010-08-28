@@ -57,7 +57,7 @@ my @OVERPAR = (
     , 'PACKSIZE_TRACKPAR' => '8'
     , 'PACKSIZE_TRACKNOTE' => '7'
     , 'TRACKLEN' => '32'
-    , 'CMD_LIGHTSET' => '0x1F'
+    , 'CMD_LIGHTSET' => 0x1F
     , 'INSTRPACKER' => \&pack_inst_alternating
     , 'TRACKPACKER' => \&pack_track_npf
     }
@@ -351,7 +351,7 @@ sub add_some_lighting($$$) {
             $lval += 0x80 if defined $lights[0];
             $lval += 0x40 if defined $lights[1];
 
-            $$atr[$ix][$tix][2+2*$cix] = $format{'CMD_LIGHTSET'};
+            $$atr[$ix][$tix][2+2*$cix] = $$format{'CMD_LIGHTSET'};
             $$atr[$ix][$tix][2+2*$cix+1] = $lval;
         }
     }
@@ -792,7 +792,7 @@ my $atr = ($PACKVER > 0)
     : padtracks($iverpar, $overpar, $ntr);
 my $asr = padsong  ($iverpar, $overpar, $nsr);
 
-add_some_lighting($iverpar, $overpar, $atr) if defined $overpar{'CMD_LIGHTSET'};
+add_some_lighting($iverpar, $overpar, $atr) if defined $$overpar{'CMD_LIGHTSET'};
 
 if (defined $TRACKOUTF) {
     open TRACKOUT,">$TRACKOUTF" or die "Can't open $TRACKOUTF: $!";
