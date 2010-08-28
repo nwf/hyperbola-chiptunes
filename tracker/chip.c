@@ -96,6 +96,9 @@ void runcmd(u8 ch, u8 cmd, u8 param) {
 			channel[ch].vdepth = param >> 4;
 			channel[ch].vrate = param & 15;
 			break;
+		case 'S':
+			osc[ch].phase += param;
+			break;
 	}
 }
 

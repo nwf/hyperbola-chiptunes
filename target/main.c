@@ -202,6 +202,9 @@ static void runcmd(u8 ch, u8 cmd, u8 param) {
 			channel[ch].vdepth = param >> 4;
 			channel[ch].vrate = param & 15;
 			break;
+		case CMD_OSCINC:
+			osc[ch].phase += (s8) param;
+			break;
 		case CMD_LIGHTSET:
 			if(param & 0x80) {
 				light[0] = param & 0x1F;

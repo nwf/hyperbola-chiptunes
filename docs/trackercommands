@@ -13,6 +13,7 @@ ENC	CHAR	COMMAND
 A	'~'(7E)	CHAN VDEPTH AND VRATE (param == ddddrrrr)
 B	'+'(2B)	CHAN INSTRUMENT NOTE (param + tnote - 48)
 C	'='(3D)	CHAN INSTRUMENT NOTE (param)
-D	n/a
+
+D	'S'(53)	OSC  INCREMENT PHASE
 E	n/a
 F	n/a

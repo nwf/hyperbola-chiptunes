@@ -52,6 +52,8 @@
 #define CMD_INOTE       0xC
     /** Set channel vibrato depth and rate */
 #define CMD_VIBRATO     0xA
+    /** Micromanage the oscillator phase */
+#define CMD_OSCINC      0xD
 
 /* Commands.  5 bits (track context only) */
     /** Lighting effects; lr_ttttt */
