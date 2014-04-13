@@ -7,7 +7,7 @@ CPU_FREQUENCY=20000000
 SAMPLE_RATE=16000
 
 tracker/%: CPPFLAGS=-I.
-tracker/%: LDFLAGS=-lSDL -lncurses
+tracker/%: LDFLAGS=-lSDL -lncurses -lm `sdl-config --cflags --libs`
 tracker/%: CFLAGS=-Wall -Wextra -Werror
 tracker/%: CC=gcc
 
